@@ -25,6 +25,7 @@ data class Zamer(
     val area: String,
     val thickness: String,
     val price: String,
+    val comment: String,
     val status: ZamerStatus
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
@@ -38,6 +39,7 @@ data class Zamer(
         put("area", area)
         put("thickness", thickness)
         put("price", price)
+        put("comment", comment)
         put("status", status.name)
     }
 
@@ -53,6 +55,7 @@ data class Zamer(
             area = o.optString("area", ""),
             thickness = o.optString("thickness", ""),
             price = o.optString("price", ""),
+            comment = o.optString("comment", ""),
             status = try { ZamerStatus.valueOf(o.optString("status", "PLANNED")) } catch (e: Exception) { ZamerStatus.PLANNED }
         )
     }
@@ -75,5 +78,49 @@ class Storage(context: Context) {
         val arr = JSONArray()
         list.forEach { arr.put(it.toJson()) }
         prefs.edit().putString("zamers_json", arr.toString()).apply()
+    }
+}
+
+object ZamerParser {
+    private val PHONE = Regex("(\\+?\\d[\\d\\s\\-()]{8,}\\d)")
+    private val AREA = Regex("(\\d{1,4})\\s*(м²|м2|кв\\.?\\s*м\\.?|квадратных?\\s*метров?|кв\\.?\\s*метров?)", RegexOption.IGNORE_CASE)
+    private val THICK = Regex("(\\d{1,2})\\s*(?:[-–]\\s*(\\d{1,2}))?\\s*(см|сантиметр[а-я]*)", RegexOption.IGNORE_CASE)
+    private val FROM = Regex("от\\s*[:\\-]?\\s*([А-ЯA-Zа-яa-zЁё]+)", RegexOption.IGNORE_CASE)
+    private val ADDR_KEY = Regex("(ул\\.?|улиц[а-я]+|проспект|пр-?кт|просп\\.?|дом|д\\.?|корп\\.?|корпус|кв\\.?|квартира|мкр\\.?|микрорайон|жк|шоссе|бульвар|переулок|пер\\.?|проезд|набережная|эт\\.|этаж)", RegexOption.IGNORE_CASE)
+    private val STOP = Regex("(лифт|паркинг|парковк|разгруз|домофон|въезд)", RegexOption.IGNORE_CASE)
+
+    data class Parsed(
+        val phone: String, val address: String, val area: String,
+        val thickness: String, val comment: String, val contactFrom: String
+    )
+
+    private fun String.clean(): String =
+        this.replace(Regex("\\s+"), " ").trim().trimEnd('.', ',', ' ', ';')
+
+    fun parse(raw: String): Parsed {
+        var text = raw.replace("\r", "").trim()
+        var phone = ""; var area = ""; var thick = ""; var contactFrom = ""
+
+        FROM.find(text)?.let { m -> contactFrom = m.groupValues[1]; text = text.removeRange(m.range) }
+        PHONE.find(text)?.let { m -> phone = m.value.trim(); text = text.removeRange(m.range) }
+        AREA.find(text)?.let { m -> area = m.groupValues[1] + " м²"; text = text.removeRange(m.range) }
+        THICK.find(text)?.let { m ->
+            thick = if (m.groupValues[2].isNotEmpty()) m.groupValues[1] + "-" + m.groupValues[2] + " см"
+                    else m.groupValues[1] + " см"
+            text = text.removeRange(m.range)
+        }
+
+        var address = ""; var comment = ""
+        val aStart = ADDR_KEY.find(text)?.range?.first
+        if (aStart != null) {
+            val before = text.substring(0, aStart)
+            val rest = text.substring(aStart)
+            val stop = STOP.find(rest)
+            address = (stop?.let { rest.substring(0, it.range.first) } ?: rest).clean()
+            comment = (before + " " + (stop?.let { rest.substring(it.range.first) } ?: "")).clean()
+        } else {
+            comment = text.clean()
+        }
+        return Parsed(phone, address, area, thick, comment, contactFrom)
     }
 }
