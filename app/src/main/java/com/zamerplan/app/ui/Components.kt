@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -181,7 +182,7 @@ fun ZamerCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.width6dp().background(statusColor(z.status)))
+            Box(modifier = Modifier.width(6.dp).background(statusColor(z.status)))
             Column(modifier = Modifier.weight(1f).padding(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     Surface(color = statusColor(z.status), shape = RoundedCornerShape(8.dp)) {
@@ -269,5 +270,3 @@ fun ZamerCard(
         }
     }
 }
-
-private fun Modifier.width6dp(): Modifier = this.then(androidx.compose.foundation.layout.width(6.dp))
