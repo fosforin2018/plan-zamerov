@@ -5,16 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -31,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.model.Zamer
@@ -43,6 +41,7 @@ val Orange = Color(0xFFF4511E)
 val Green = Color(0xFF43A047)
 val Gray = Color(0xFF757575)
 val Red = Color(0xFFE53935)
+val Blue = Color(0xFF1E88E5)
 
 fun statusColor(s: ZamerStatus): Color = when (s) {
     ZamerStatus.PLANNED -> Orange
@@ -153,16 +152,16 @@ fun ActionButton(
             onClick = onClick,
             modifier = modifier,
             colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
-            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
             shape = RoundedCornerShape(10.dp)
-        ) { Text(text, fontSize = 12.sp, maxLines = 1, softWrap = false) }
+        ) { Text(text, fontSize = 11.sp, maxLines = 1, softWrap = false) }
     } else {
         TextButton(
             onClick = onClick,
             modifier = modifier,
             colors = ButtonDefaults.textButtonColors(contentColor = color),
-            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-        ) { Text(text, fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+        ) { Text(text, fontSize = 11.sp, maxLines = 1, softWrap = false) }
     }
 }
 
@@ -171,70 +170,104 @@ fun ZamerCard(
     z: Zamer,
     onCall: () -> Unit,
     onDone: () -> Unit,
+    onReturn: () -> Unit,
     onReschedule: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onMap: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
-            Box(modifier = Modifier.width(6.dp).fillMaxHeight().background(statusColor(z.status)))
-            Column(modifier = Modifier.weight(1f).padding(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        z.time.format(DateTimeFormatter.ofPattern("HH:mm")),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Orange,
-                        maxLines = 1
-                    )
-                    Spacer(Modifier.weight(1f))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.width6dp().background(statusColor(z.status)))
+            Column(modifier = Modifier.weight(1f).padding(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     Surface(color = statusColor(z.status), shape = RoundedCornerShape(8.dp)) {
                         Text(
                             z.status.label,
                             color = Color.White,
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             maxLines = 1,
                             softWrap = false,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
-                if (z.name.isNotBlank()) Text(z.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                if (z.address.isNotBlank()) Text(z.address, fontSize = 13.sp)
-                if (z.contactFrom.isNotBlank()) Text(
-                    "От: " + z.contactFrom,
+                Text(
+                    z.timeText(),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Orange,
+                    maxLines = 1,
+                    lineHeight = 20.sp
+                )
+                if (z.name.isNotBlank()) Text(
+                    z.name,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    lineHeight = 17.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (z.address.isNotBlank()) Text(
+                    z.address,
                     fontSize = 12.sp,
+                    lineHeight = 15.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val meta = listOf(
+                    if (z.contactFrom.isNotBlank()) "От: " + z.contactFrom else "",
+                    z.area, z.thickness
+                ).filter { it.isNotBlank() }.joinToString(" · ")
+                if (meta.isNotBlank()) Text(
+                    meta,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                val params = listOf(z.area, z.thickness).filter { it.isNotBlank() }.joinToString(" · ")
-                if (params.isNotBlank()) Text(params, fontSize = 12.sp)
-                if (z.price.isNotBlank()) Text(z.price + " ₽", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                if (z.price.isNotBlank()) Text(
+                    z.price + " ₽",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
+                )
                 if (z.comment.isNotBlank()) Text(
                     z.comment,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     ActionButton("Позвонить", onCall, true, Orange, Modifier.weight(1f))
-                    ActionButton("Перенести", onReschedule, false, Orange, Modifier.weight(1f))
+                    ActionButton("Карта", onMap, false, Blue, Modifier.weight(1f))
                 }
                 Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    if (z.status != ZamerStatus.DONE && z.status != ZamerStatus.CANCELLED) {
+                    ActionButton("Перенести", onReschedule, false, Orange, Modifier.weight(1f))
+                    if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
+                        ActionButton("Вернуть", onReturn, true, Green, Modifier.weight(1f))
+                    } else {
                         ActionButton("Выполнено", onDone, true, Green, Modifier.weight(1f))
                     }
+                }
+                Row(modifier = Modifier.padding(top = 2.dp)) {
                     ActionButton("Изменить", onEdit, false, Gray, Modifier.weight(1f))
                 }
             }
         }
     }
 }
+
+private fun Modifier.width6dp(): Modifier = this.then(androidx.compose.foundation.layout.width(6.dp))
