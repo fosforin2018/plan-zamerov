@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,16 +38,17 @@ import com.zamerplan.app.model.ZamerStatus
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
 
 val Orange = Color(0xFFF4511E)
+val Green = Color(0xFF43A047)
+val Gray = Color(0xFF757575)
+val Red = Color(0xFFE53935)
 
 fun statusColor(s: ZamerStatus): Color = when (s) {
     ZamerStatus.PLANNED -> Orange
-    ZamerStatus.DONE -> Color(0xFF43A047)
-    ZamerStatus.POSTPONED -> Color(0xFF9E9E9E)
-    ZamerStatus.CANCELLED -> Color(0xFFE53935)
+    ZamerStatus.DONE -> Green
+    ZamerStatus.POSTPONED -> Gray
+    ZamerStatus.CANCELLED -> Red
 }
 
 @Composable
@@ -57,7 +59,9 @@ fun MonthCalendar(
     onSelectDate: (LocalDate) -> Unit,
     countsByDay: Map<LocalDate, Int>
 ) {
-    val ru = Locale.forLanguageTag("ru")
+    val ru = java.util.Locale.forLanguageTag("ru")
+    val title = DateTimeFormatter.ofPattern("LLLL yyyy", ru).format(month.atDay(1))
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(ru) else it.toString() }
     Column {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -65,8 +69,7 @@ fun MonthCalendar(
         ) {
             TextButton(onClick = { onMonthChange(month.minusMonths(1)) }) { Text("‹") }
             Text(
-                text = month.month.getDisplayName(TextStyle.FULL, ru)
-                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(ru) else it.toString() } + " " + month.year,
+                text = title,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,
@@ -138,13 +141,29 @@ fun MonthCalendar(
 }
 
 @Composable
-fun SmallButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier,
-        colors = ButtonDefaults.textButtonColors(contentColor = Orange),
-        contentPadding = PaddingValues(4.dp, 2.dp)
-    ) { Text(text, fontSize = 12.sp) }
+fun ActionButton(
+    text: String,
+    onClick: () -> Unit,
+    filled: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    if (filled) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+            shape = RoundedCornerShape(10.dp)
+        ) { Text(text, fontSize = 12.sp, maxLines = 1, softWrap = false) }
+    } else {
+        TextButton(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.textButtonColors(contentColor = color),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+        ) { Text(text, fontSize = 12.sp, maxLines = 1, softWrap = false) }
+    }
 }
 
 @Composable
@@ -152,7 +171,8 @@ fun ZamerCard(
     z: Zamer,
     onCall: () -> Unit,
     onDone: () -> Unit,
-    onReschedule: () -> Unit
+    onReschedule: () -> Unit,
+    onEdit: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(4.dp),
@@ -167,7 +187,8 @@ fun ZamerCard(
                         z.time.format(DateTimeFormatter.ofPattern("HH:mm")),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Orange
+                        color = Orange,
+                        maxLines = 1
                     )
                     Spacer(Modifier.weight(1f))
                     Surface(color = statusColor(z.status), shape = RoundedCornerShape(8.dp)) {
@@ -175,7 +196,9 @@ fun ZamerCard(
                             z.status.label,
                             color = Color.White,
                             fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
                     }
                 }
@@ -189,15 +212,27 @@ fun ZamerCard(
                 val params = listOf(z.area, z.thickness).filter { it.isNotBlank() }.joinToString(" · ")
                 if (params.isNotBlank()) Text(params, fontSize = 12.sp)
                 if (z.price.isNotBlank()) Text(z.price + " ₽", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                if (z.comment.isNotBlank()) Text(
+                    z.comment,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3
+                )
                 Row(
                     modifier = Modifier.padding(top = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    SmallButton("Позвонить", onCall, Modifier.weight(1f))
-                    SmallButton("Перенести", onReschedule, Modifier.weight(1f))
+                    ActionButton("Позвонить", onCall, true, Orange, Modifier.weight(1f))
+                    ActionButton("Перенести", onReschedule, false, Orange, Modifier.weight(1f))
                 }
-                if (z.status != ZamerStatus.DONE && z.status != ZamerStatus.CANCELLED) {
-                    SmallButton("Выполнено", onDone, Modifier.fillMaxWidth().padding(top = 2.dp))
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (z.status != ZamerStatus.DONE && z.status != ZamerStatus.CANCELLED) {
+                        ActionButton("Выполнено", onDone, true, Green, Modifier.weight(1f))
+                    }
+                    ActionButton("Изменить", onEdit, false, Gray, Modifier.weight(1f))
                 }
             }
         }
