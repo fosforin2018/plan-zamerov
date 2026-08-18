@@ -18,6 +18,7 @@ data class Zamer(
     val id: Long,
     val date: LocalDate,
     val time: LocalTime,
+    val timeEnd: String,
     val name: String,
     val phone: String,
     val contactFrom: String,
@@ -28,10 +29,15 @@ data class Zamer(
     val comment: String,
     val status: ZamerStatus
 ) {
+    fun timeText(): String =
+        if (timeEnd.isNotBlank()) time.format(DateTimeFormatter.ofPattern("HH:mm")) + "–" + timeEnd
+        else time.format(DateTimeFormatter.ofPattern("HH:mm"))
+
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("date", date.toString())
         put("time", time.format(DateTimeFormatter.ofPattern("HH:mm")))
+        put("timeEnd", timeEnd)
         put("name", name)
         put("phone", phone)
         put("contactFrom", contactFrom)
@@ -48,6 +54,7 @@ data class Zamer(
             id = o.optLong("id", 0L),
             date = try { LocalDate.parse(o.optString("date", "")) } catch (e: Exception) { LocalDate.now() },
             time = try { LocalTime.parse(o.optString("time", "12:00")) } catch (e: Exception) { LocalTime.NOON },
+            timeEnd = o.optString("timeEnd", ""),
             name = o.optString("name", ""),
             phone = o.optString("phone", ""),
             contactFrom = o.optString("contactFrom", ""),
