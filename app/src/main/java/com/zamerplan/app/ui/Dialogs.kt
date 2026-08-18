@@ -1,10 +1,13 @@
 package com.zamerplan.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -25,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerParser
 import com.zamerplan.app.model.ZamerStatus
@@ -47,6 +51,8 @@ fun ZamerFormDialog(
 ) {
     var date by remember { mutableStateOf(existing?.date ?: initialDate) }
     var time by remember { mutableStateOf(existing?.time ?: LocalTime.of(12, 0)) }
+    var timeEnd by remember { mutableStateOf(existing?.timeEnd ?: "") }
+    var status by remember { mutableStateOf(existing?.status ?: ZamerStatus.PLANNED) }
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var phone by remember { mutableStateOf(existing?.phone ?: "") }
     var contactFrom by remember { mutableStateOf(existing?.contactFrom ?: "") }
@@ -58,12 +64,14 @@ fun ZamerFormDialog(
     var rawText by remember { mutableStateOf("") }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
+    var showTimeEnd by remember { mutableStateOf(false) }
     val dateState = rememberDatePickerState(
         date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     )
     val timeState = rememberTimePickerState(
         initialHour = time.hour, initialMinute = time.minute, is24Hour = true
     )
+    val timeEndState = rememberTimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -73,12 +81,30 @@ fun ZamerFormDialog(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(onClick = { showDate = true }, modifier = Modifier.weight(1f)) {
-                        Text(date.format(D))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { showDate = true }, modifier = Modifier.weight(1.2f)) {
+                        Text(date.format(D), fontSize = 13.sp, maxLines = 1, softWrap = false)
                     }
-                    TextButton(onClick = { showTime = true }, modifier = Modifier.weight(1f)) {
-                        Text(time.format(T))
+                    TextButton(onClick = { showTime = true }, modifier = Modifier.weight(0.8f)) {
+                        Text(time.format(T), fontSize = 13.sp, maxLines = 1, softWrap = false)
+                    }
+                    TextButton(onClick = { showTimeEnd = true }, modifier = Modifier.weight(1f)) {
+                        Text(if (timeEnd.isBlank()) "Конец: —" else "до " + timeEnd, fontSize = 13.sp, maxLines = 1, softWrap = false)
+                    }
+                }
+                if (existing != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        ZamerStatus.values().forEach { s ->
+                            val selected = s == status
+                            TextButton(
+                                onClick = { status = s },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(if (selected) statusColor(s) else Color.Transparent, RoundedCornerShape(8.dp)),
+                                colors = ButtonDefaults.textButtonColors(contentColor = if (selected) Color.White else statusColor(s)),
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp)
+                            ) { Text(s.label, fontSize = 9.sp, maxLines = 1, softWrap = false) }
+                        }
                     }
                 }
                 OutlinedTextField(contactFrom, { contactFrom = it }, label = { Text("От кого контакт") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -106,12 +132,12 @@ fun ZamerFormDialog(
                 onSave(
                     Zamer(
                         id = existing?.id ?: System.currentTimeMillis(),
-                        date = date, time = time,
+                        date = date, time = time, timeEnd = timeEnd.trim(),
                         name = name.trim(), phone = phone.trim(),
                         contactFrom = contactFrom.trim(), address = address.trim(),
                         area = area.trim(), thickness = thickness.trim(),
                         price = price.trim(), comment = comment.trim(),
-                        status = existing?.status ?: ZamerStatus.PLANNED
+                        status = status
                     )
                 )
             }) { Text("Сохранить") }
@@ -146,6 +172,22 @@ fun ZamerFormDialog(
             text = { TimePicker(state = timeState) }
         )
     }
+
+    if (showTimeEnd) {
+        AlertDialog(
+            onDismissRequest = { showTimeEnd = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    timeEnd = LocalTime.of(timeEndState.hour, timeEndState.minute).format(T)
+                    showTimeEnd = false
+                }) { Text("ОК") }
+            },
+            dismissButton = {
+                TextButton(onClick = { timeEnd = ""; showTimeEnd = false }) { Text("Сбросить") }
+            },
+            text = { TimePicker(state = timeEndState) }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -156,6 +198,7 @@ fun RescheduleDialog(
     onDismiss: () -> Unit
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    var confirmCancel by remember { mutableStateOf(false) }
     val pickerState = rememberDatePickerState()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -166,10 +209,10 @@ fun RescheduleDialog(
                 TextButton(onClick = { onMove(LocalDate.now().plusDays(2)) }, modifier = Modifier.fillMaxWidth()) { Text("На послезавтра") }
                 TextButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) { Text("Выбрать дату") }
                 TextButton(
-                    onClick = onCancelZamer,
+                    onClick = { if (confirmCancel) onCancelZamer() else confirmCancel = true },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFE53935))
-                ) { Text("Отменить замер") }
+                    colors = ButtonDefaults.textButtonColors(contentColor = Red)
+                ) { Text(if (confirmCancel) "Точно отменить? Нажмите ещё раз" else "Отменить замер") }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } }
