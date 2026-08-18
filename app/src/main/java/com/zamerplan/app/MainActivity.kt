@@ -91,6 +91,31 @@ fun MainScreen(
     var rescheduleTarget by remember { mutableStateOf<Zamer?>(null) }
     val context = LocalContext.current
 
+    @Composable
+    fun CardSlot(z: Zamer) {
+        ZamerCard(
+            z = z,
+            onCall = {
+                val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
+                if (tel.isNotEmpty()) {
+                    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel")))
+                }
+            },
+            onMap = {
+                if (z.address.isNotBlank()) {
+                    val enc = Uri.encode(z.address)
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://yandex.ru/maps/?text=$enc")))
+                    } catch (e: Exception) { }
+                }
+            },
+            onDone = { onUpdate(z.copy(status = ZamerStatus.DONE)) },
+            onReturn = { onUpdate(z.copy(status = ZamerStatus.PLANNED)) },
+            onReschedule = { rescheduleTarget = z },
+            onEdit = { editTarget = z }
+        )
+    }
+
     val counts = zamers.filter { it.status != ZamerStatus.CANCELLED }
         .groupingBy { it.date }.eachCount()
     val dayList = zamers.filter { it.date == selectedDate }.sortedBy { it.time }
@@ -138,25 +163,20 @@ fun MainScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            dayList.chunked(2).forEach { rowItems ->
-                Row(modifier = Modifier.padding(horizontal = 12.dp)) {
-                    rowItems.forEach { z ->
-                        Column(modifier = Modifier.weight(1f)) {
-                            ZamerCard(
-                                z = z,
-                                onCall = {
-                                    val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
-                                    if (tel.isNotEmpty()) {
-                                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel")))
-                                    }
-                                },
-                                onDone = { onUpdate(z.copy(status = ZamerStatus.DONE)) },
-                                onReschedule = { rescheduleTarget = z },
-                                onEdit = { editTarget = z }
-                            )
+            if (dayList.size == 1) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+                    CardSlot(dayList[0])
+                }
+            } else {
+                dayList.chunked(2).forEach { rowItems ->
+                    Row(modifier = Modifier.padding(horizontal = 12.dp)) {
+                        rowItems.forEach { z ->
+                            Column(modifier = Modifier.weight(1f)) {
+                                CardSlot(z)
+                            }
                         }
+                        if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
-                    if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
             Spacer(modifier = Modifier.height(80.dp))
