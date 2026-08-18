@@ -87,6 +87,7 @@ fun MainScreen(
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var month by remember { mutableStateOf(YearMonth.now()) }
     var showForm by remember { mutableStateOf(false) }
+    var editTarget by remember { mutableStateOf<Zamer?>(null) }
     var rescheduleTarget by remember { mutableStateOf<Zamer?>(null) }
     val context = LocalContext.current
 
@@ -150,7 +151,8 @@ fun MainScreen(
                                     }
                                 },
                                 onDone = { onUpdate(z.copy(status = ZamerStatus.DONE)) },
-                                onReschedule = { rescheduleTarget = z }
+                                onReschedule = { rescheduleTarget = z },
+                                onEdit = { editTarget = z }
                             )
                         }
                     }
@@ -166,6 +168,15 @@ fun MainScreen(
             initialDate = selectedDate,
             onSave = { z -> onSave(z); showForm = false },
             onDismiss = { showForm = false }
+        )
+    }
+
+    editTarget?.let { z ->
+        ZamerFormDialog(
+            initialDate = z.date,
+            existing = z,
+            onSave = { updated -> onUpdate(updated); editTarget = null },
+            onDismiss = { editTarget = null }
         )
     }
 
