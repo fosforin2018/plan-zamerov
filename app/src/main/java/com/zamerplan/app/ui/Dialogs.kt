@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.zamerplan.app.model.Zamer
+import com.zamerplan.app.model.ZamerParser
 import com.zamerplan.app.model.ZamerStatus
 import java.time.Instant
 import java.time.LocalDate
@@ -40,18 +41,21 @@ private val T = DateTimeFormatter.ofPattern("HH:mm")
 @Composable
 fun ZamerFormDialog(
     initialDate: LocalDate,
+    existing: Zamer? = null,
     onSave: (Zamer) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var date by remember { mutableStateOf(initialDate) }
-    var time by remember { mutableStateOf(LocalTime.of(12, 0)) }
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var contactFrom by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var area by remember { mutableStateOf("") }
-    var thickness by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(existing?.date ?: initialDate) }
+    var time by remember { mutableStateOf(existing?.time ?: LocalTime.of(12, 0)) }
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var phone by remember { mutableStateOf(existing?.phone ?: "") }
+    var contactFrom by remember { mutableStateOf(existing?.contactFrom ?: "") }
+    var address by remember { mutableStateOf(existing?.address ?: "") }
+    var area by remember { mutableStateOf(existing?.area ?: "") }
+    var thickness by remember { mutableStateOf(existing?.thickness ?: "") }
+    var price by remember { mutableStateOf(existing?.price ?: "") }
+    var comment by remember { mutableStateOf(existing?.comment ?: "") }
+    var rawText by remember { mutableStateOf("") }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     val dateState = rememberDatePickerState(
@@ -63,7 +67,7 @@ fun ZamerFormDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый замер") },
+        title = { Text(if (existing != null) "Редактировать замер" else "Новый замер") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -77,25 +81,37 @@ fun ZamerFormDialog(
                         Text(time.format(T))
                     }
                 }
+                OutlinedTextField(contactFrom, { contactFrom = it }, label = { Text("От кого контакт") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(name, { name = it }, label = { Text("Имя клиента") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(phone, { phone = it }, label = { Text("Телефон") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(contactFrom, { contactFrom = it }, label = { Text("От кого контакт") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(address, { address = it }, label = { Text("Объект / адрес") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(address, { address = it }, label = { Text("Объект / адрес") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 3)
                 OutlinedTextField(area, { area = it }, label = { Text("Площадь, м²") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(thickness, { thickness = it }, label = { Text("Толщина стяжки, см") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(price, { price = it }, label = { Text("Цена, ₽") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(comment, { comment = it }, label = { Text("Комментарий (лифт, паркинг и т.д.)") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 4)
+                OutlinedTextField(rawText, { rawText = it }, label = { Text("Вставьте текст сообщения (WhatsApp/Telegram)") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 6)
+                TextButton(onClick = {
+                    val p = ZamerParser.parse(rawText)
+                    if (p.phone.isNotBlank()) phone = p.phone
+                    if (p.address.isNotBlank()) address = p.address
+                    if (p.area.isNotBlank()) area = p.area
+                    if (p.thickness.isNotBlank()) thickness = p.thickness
+                    if (p.contactFrom.isNotBlank()) contactFrom = p.contactFrom
+                    if (p.comment.isNotBlank()) comment = p.comment
+                }) { Text("Разобрать текст и заполнить поля", color = Orange) }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 onSave(
                     Zamer(
-                        id = System.currentTimeMillis(),
+                        id = existing?.id ?: System.currentTimeMillis(),
                         date = date, time = time,
                         name = name.trim(), phone = phone.trim(),
                         contactFrom = contactFrom.trim(), address = address.trim(),
                         area = area.trim(), thickness = thickness.trim(),
-                        price = price.trim(), status = ZamerStatus.PLANNED
+                        price = price.trim(), comment = comment.trim(),
+                        status = existing?.status ?: ZamerStatus.PLANNED
                     )
                 )
             }) { Text("Сохранить") }
