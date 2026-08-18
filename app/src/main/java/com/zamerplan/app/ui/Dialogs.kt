@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.sp
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerParser
 import com.zamerplan.app.model.ZamerStatus
+import com.zamerplan.app.ui.Orange
+import com.zamerplan.app.ui.Red
+import com.zamerplan.app.ui.statusColor
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
