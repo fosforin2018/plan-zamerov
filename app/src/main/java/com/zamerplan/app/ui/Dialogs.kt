@@ -18,6 +18,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -81,13 +83,13 @@ fun ZamerFormDialog(
     val id = existing?.id ?: System.currentTimeMillis()
     val voiceFile = File(ctx.filesDir, "voice_$id.m4a")
 
-    val permLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) startRec() }
-
     fun startRec() {
         recorder.start(voiceFile)
     }
+
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) startRec() }
 
     val dateState = rememberDatePickerState(
         date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -152,7 +154,6 @@ fun ZamerFormDialog(
                     label = { Text("Комментарий (лифт, паркинг и т.д.)") },
                     modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 4)
 
-                // Блок голосовой напоминалки
                 Text("🎤 Голосовая напоминалка (себе)", fontSize = 12.sp,
                     color = Orange, fontWeight = FontWeight.SemiBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -169,7 +170,7 @@ fun ZamerFormDialog(
                             }
                         },
                         modifier = Modifier.weight(1f)
-                    ) { Text("🎤 Записать голос", maxLines = 1, softWrap = false) }
+                    ) { Text("🎤 Записать", maxLines = 1, softWrap = false) }
                     if (hasVoice) {
                         TextButton(
                             onClick = {
@@ -177,7 +178,7 @@ fun ZamerFormDialog(
                                 voicePlaying = true
                             },
                             modifier = Modifier.weight(1f)
-                        ) { Text(if (voicePlaying) "⏹ Играет" else "▶ Послушать",
+                        ) { Text(if (voicePlaying) "⏹ Играет" else "▶ Слушать",
                             maxLines = 1, softWrap = false) }
                         TextButton(
                             onClick = {
@@ -186,7 +187,7 @@ fun ZamerFormDialog(
                             },
                             colors = ButtonDefaults.textButtonColors(contentColor = Red),
                             modifier = Modifier.weight(0.8f)
-                        ) { Text("🗑 Удалить", maxLines = 1, softWrap = false) }
+                        ) { Text("🗑", maxLines = 1, softWrap = false) }
                     }
                 }
                 if (hasVoice) {
