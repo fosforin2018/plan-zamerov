@@ -175,7 +175,7 @@ object ZamerParser {
                 fun conv(v: String): String {
                     val num = v.replace(",", ".").toFloatOrNull() ?: return v
                     val r = if (isMm) num / 10f else num
-                    return if (r == Math.floor(r.toDouble())) r.toInt().toString()
+                    return if (r % 1f == 0f) r.toInt().toString()
                     else r.toString().replace(".", ",")
                 }
                 thick = if (b.isNotEmpty()) conv(a) + "-" + conv(b) + " см" else conv(a) + " см"
