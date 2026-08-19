@@ -27,11 +27,15 @@ data class Zamer(
     val thickness: String,
     val price: String,
     val comment: String,
+    val voiceFile: String,
     val status: ZamerStatus
 ) {
     fun timeText(): String =
         if (timeEnd.isNotBlank()) time.format(DateTimeFormatter.ofPattern("HH:mm")) + "–" + timeEnd
         else time.format(DateTimeFormatter.ofPattern("HH:mm"))
+
+    fun voicePath(ctx: Context): java.io.File =
+        java.io.File(ctx.filesDir, "voice_$id.m4a")
 
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
@@ -46,6 +50,7 @@ data class Zamer(
         put("thickness", thickness)
         put("price", price)
         put("comment", comment)
+        put("voiceFile", voiceFile)
         put("status", status.name)
     }
 
@@ -63,6 +68,7 @@ data class Zamer(
             thickness = o.optString("thickness", ""),
             price = o.optString("price", ""),
             comment = o.optString("comment", ""),
+            voiceFile = o.optString("voiceFile", ""),
             status = try { ZamerStatus.valueOf(o.optString("status", "PLANNED")) } catch (e: Exception) { ZamerStatus.PLANNED }
         )
     }
@@ -70,21 +76,24 @@ data class Zamer(
 
 class Storage(context: Context) {
     private val prefs = context.getSharedPreferences("zamer_storage", Context.MODE_PRIVATE)
+    private val ctx = context
 
     fun load(): List<Zamer> {
         val json = prefs.getString("zamers_json", null) ?: return emptyList()
         return try {
             val arr = JSONArray(json)
             (0 until arr.length()).map { Zamer.fromJson(arr.getJSONObject(it)) }
-        } catch (e: Exception) {
-            emptyList()
-        }
+        } catch (e: Exception) { emptyList() }
     }
 
     fun save(list: List<Zamer>) {
         val arr = JSONArray()
         list.forEach { arr.put(it.toJson()) }
         prefs.edit().putString("zamers_json", arr.toString()).apply()
+    }
+
+    fun deleteVoice(id: Long) {
+        java.io.File(ctx.filesDir, "voice_$id.m4a").delete()
     }
 }
 
@@ -96,10 +105,8 @@ object ZamerParser {
     private val ADDR_KEY = Regex("(ул\\.?|улиц[а-я]+|проспект|пр-?кт|просп\\.?|дом|д\\.?|корп\\.?|корпус|кв\\.?|квартира|мкр\\.?|микрорайон|жк|шоссе|бульвар|переулок|пер\\.?|проезд|набережная|эт\\.|этаж)", RegexOption.IGNORE_CASE)
     private val STOP = Regex("(лифт|паркинг|парковк|разгруз|домофон|въезд)", RegexOption.IGNORE_CASE)
 
-    data class Parsed(
-        val phone: String, val address: String, val area: String,
-        val thickness: String, val comment: String, val contactFrom: String
-    )
+    data class Parsed(val phone: String, val address: String, val area: String,
+                      val thickness: String, val comment: String, val contactFrom: String)
 
     private fun String.clean(): String =
         this.replace(Regex("\\s+"), " ").trim().trimEnd('.', ',', ' ', ';')
@@ -107,7 +114,6 @@ object ZamerParser {
     fun parse(raw: String): Parsed {
         var text = raw.replace("\r", "").trim()
         var phone = ""; var area = ""; var thick = ""; var contactFrom = ""
-
         FROM.find(text)?.let { m -> contactFrom = m.groupValues[1]; text = text.removeRange(m.range) }
         PHONE.find(text)?.let { m -> phone = m.value.trim(); text = text.removeRange(m.range) }
         AREA.find(text)?.let { m -> area = m.groupValues[1] + " м²"; text = text.removeRange(m.range) }
@@ -116,7 +122,6 @@ object ZamerParser {
                     else m.groupValues[1] + " см"
             text = text.removeRange(m.range)
         }
-
         var address = ""; var comment = ""
         val aStart = ADDR_KEY.find(text)?.range?.first
         if (aStart != null) {
