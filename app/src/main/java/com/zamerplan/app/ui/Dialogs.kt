@@ -92,12 +92,7 @@ fun ZamerFormDialog(
     fun stopRec() {
         recorder.stop()
         isRecording = false
-        // Проверяем, что файл действительно создан и не пустой
-        if (voiceFile.exists() && voiceFile.length() > 0L) {
-            hasVoice = true
-        } else {
-            hasVoice = false
-        }
+        hasVoice = voiceFile.exists() && voiceFile.length() > 0L
     }
 
     val permLauncher = rememberLauncherForActivityResult(
@@ -113,9 +108,9 @@ fun ZamerFormDialog(
     val timeEndState = rememberTimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
 
     AlertDialog(
-        onDismissRequest = { 
+        onDismissRequest = {
             if (isRecording) stopRec()
-            onDismiss() 
+            onDismiss()
         },
         title = { Text(if (existing != null) "Редактировать замер" else "Новый замер") },
         text = {
@@ -179,18 +174,15 @@ fun ZamerFormDialog(
                             modifier = Modifier.weight(1f)
                                 .background(Red.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
                             colors = ButtonDefaults.textButtonColors(contentColor = Red)
-                        ) { Text("🔴 Идет запись... Остановить", maxLines = 1, softWrap = false) }
+                        ) { Text("🔴 Идет запись... Стоп", maxLines = 1, softWrap = false) }
                     } else {
                         TextButton(
                             onClick = {
                                 val granted = ContextCompat.checkSelfPermission(
                                     ctx, Manifest.permission.RECORD_AUDIO
                                 ) == PackageManager.PERMISSION_GRANTED
-                                if (granted) {
-                                    startRec()
-                                } else {
-                                    permLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
+                                if (granted) startRec()
+                                else permLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             },
                             modifier = Modifier.weight(1f)
                         ) { Text("🎤 Записать голос", maxLines = 1, softWrap = false) }
@@ -199,31 +191,26 @@ fun ZamerFormDialog(
                         TextButton(
                             onClick = {
                                 voicePlaying = true
-                                val success = recorder.play(voiceFile) { 
-                                    voicePlaying = false 
-                                }
-                                if (!success) voicePlaying = false
+                                val ok = recorder.play(voiceFile) { voicePlaying = false }
+                                if (!ok) voicePlaying = false
                             },
                             modifier = Modifier.weight(1f)
                         ) { Text(if (voicePlaying) "⏹ Играет" else "▶ Слушать",
                             maxLines = 1, softWrap = false) }
                         TextButton(
-                            onClick = {
-                                voiceFile.delete()
-                                hasVoice = false
-                            },
+                            onClick = { voiceFile.delete(); hasVoice = false },
                             colors = ButtonDefaults.textButtonColors(contentColor = Red),
-                            modifier = Modifier.weight(0.8f)
+                            modifier = Modifier.weight(0.6f)
                         ) { Text("🗑", maxLines = 1, softWrap = false) }
                     }
+                }
+                if (isRecording) {
+                    Text("🔴 Говорите... Нажмите «Стоп», когда закончите",
+                        fontSize = 11.sp, color = Red, fontWeight = FontWeight.SemiBold)
                 }
                 if (hasVoice && !isRecording) {
                     Text("💡 Голос прозвучит в напоминании ПЕРЕД мелодией",
                         fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (isRecording) {
-                    Text("🔴 Говорите... Нажмите «Остановить» когда закончите",
-                        fontSize = 11.sp, color = Red, fontWeight = FontWeight.SemiBold)
                 }
 
                 OutlinedTextField(rawText, { rawText = it },
@@ -237,7 +224,13 @@ fun ZamerFormDialog(
                     if (p.thickness.isNotBlank()) thickness = p.thickness
                     if (p.contactFrom.isNotBlank()) contactFrom = p.contactFrom
                     if (p.comment.isNotBlank()) comment = p.comment
-                }) { Text("Разобрать текст и заполнить поля", color = Orange) }
+                    if (p.name.isNotBlank()) name = p.name
+                    if (p.price.isNotBlank()) price = p.price
+                    p.dateOffset?.let { off -> date = LocalDate.now().plusDays(off.toLong()) }
+                    if (p.timeStr.isNotBlank()) {
+                        try { time = LocalTime.parse(p.timeStr) } catch (e: Exception) { }
+                    }
+                }) { Text("🧠 Разобрать текст и заполнить поля", color = Orange) }
             }
         },
         confirmButton = {
@@ -258,9 +251,9 @@ fun ZamerFormDialog(
                 )
             }) { Text("Сохранить") }
         },
-        dismissButton = { TextButton(onClick = { 
+        dismissButton = { TextButton(onClick = {
             if (isRecording) stopRec()
-            onDismiss() 
+            onDismiss()
         }) { Text("Отмена") } }
     )
 
