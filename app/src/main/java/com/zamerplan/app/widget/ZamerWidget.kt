@@ -3,17 +3,19 @@ package com.zamerplan.app.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.View
 import android.widget.RemoteViews
 import com.zamerplan.app.MainActivity
 import com.zamerplan.app.R
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.ZamerStatus
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class ZamerWidget : AppWidgetProvider() {
 
@@ -21,59 +23,104 @@ class ZamerWidget : AppWidgetProvider() {
         ids.forEach { update(ctx, mgr, it) }
     }
 
+    private fun statusColor(s: ZamerStatus): Int = when (s) {
+        ZamerStatus.PLANNED -> 0xFFF4511E.toInt()
+        ZamerStatus.DONE -> 0xFF43A047.toInt()
+        ZamerStatus.POSTPONED -> 0xFF9E9E9E.toInt()
+        ZamerStatus.CANCELLED -> 0xFFE53935.toInt()
+    }
+
     private fun update(ctx: Context, mgr: AppWidgetManager, id: Int) {
         val rv = RemoteViews(ctx.packageName, R.layout.zamer_widget)
         val all = Storage(ctx).load()
-            .filter { it.status == ZamerStatus.PLANNED }
-            .sortedWith(compareBy({ it.date }, { it.time }))
-        val now = LocalDate.now()
-        val today = all.filter { it.date == now || it.date == now.plusDays(1) }
-        val next = all.firstOrNull {
-            it.date.isAfter(now) || (it.date == now && it.time.isAfter(LocalTime.now()))
-        }
+        val today = LocalDate.now()
+        val dFmt = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))
 
-        if (next == null) {
-            rv.setTextViewText(R.id.w_title, "План замеров")
-            rv.setTextViewText(R.id.w_line1, "Нет предстоящих замеров")
-            rv.setTextViewText(R.id.w_line2, "Откройте приложение")
+        val dayItems = all.filter { it.date == today }.sortedBy { it.time }
+        val upcoming = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
+            .sortedWith(compareBy({ it.date }, { it.time }))
+        val items = (if (dayItems.isNotEmpty()) dayItems else upcoming).take(4)
+
+        rv.setTextViewText(R.id.w_title, "📏 План замеров · " + today.format(dFmt))
+        rv.removeAllViews(R.id.w_tiles)
+
+        if (items.isEmpty()) {
+            rv.setViewVisibility(R.id.w_empty, View.VISIBLE)
         } else {
-            val dFmt = DateTimeFormatter.ofPattern("d MMM", java.util.Locale.forLanguageTag("ru"))
-            rv.setTextViewText(R.id.w_title, "План замеров · " + today.size + " ближайш.")
-            rv.setTextViewText(R.id.w_line1,
-                next.date.format(dFmt) + " · " + next.timeText() +
-                    " · " + (next.name.ifBlank { "Без имени" }))
-            rv.setTextViewText(R.id.w_line2,
-                next.address.ifBlank { "Адрес не указан" })
-            if (next.phone.isNotBlank()) {
-                val tel = next.phone.filter { it.isDigit() || it == '+' }
-                val pi = PendingIntent.getActivity(
-                    ctx, 1,
-                    Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                rv.setOnClickPendingIntent(R.id.w_call, pi)
+            rv.setViewVisibility(R.id.w_empty, View.GONE)
+            items.forEach { z ->
+                val tile = RemoteViews(ctx.packageName, R.layout.zamer_widget_tile)
+                val color = statusColor(z.status)
+                tile.setTextViewText(R.id.t_time, z.timeText())
+                tile.setInt(R.id.t_stripe, "setBackgroundColor", color)
+                tile.setTextViewText(R.id.t_status, z.status.label)
+                tile.setInt(R.id.t_status, "setBackgroundColor", color)
+
+                if (z.name.isNotBlank()) {
+                    tile.setTextViewText(R.id.t_name, z.name)
+                    tile.setViewVisibility(R.id.t_name, View.VISIBLE)
+                } else tile.setViewVisibility(R.id.t_name, View.GONE)
+
+                if (z.address.isNotBlank()) {
+                    tile.setTextViewText(R.id.t_addr, z.address)
+                    tile.setViewVisibility(R.id.t_addr, View.VISIBLE)
+                } else tile.setViewVisibility(R.id.t_addr, View.GONE)
+
+                val meta = listOf(
+                    if (z.contactFrom.isNotBlank()) "От: " + z.contactFrom else "",
+                    z.area, z.thickness
+                ).filter { it.isNotBlank() }.joinToString(" · ")
+                if (meta.isNotBlank()) {
+                    tile.setTextViewText(R.id.t_meta, meta)
+                    tile.setViewVisibility(R.id.t_meta, View.VISIBLE)
+                } else tile.setViewVisibility(R.id.t_meta, View.GONE)
+
+                tile.setTextViewText(R.id.t_price, if (z.price.isNotBlank()) z.price + " ₽" else "")
+
+                val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
+                if (tel.isNotEmpty()) {
+                    tile.setOnClickPendingIntent(R.id.t_call, PendingIntent.getActivity(
+                        ctx, z.id.toInt() * 100 + 1,
+                        Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                    tile.setViewVisibility(R.id.t_call, View.VISIBLE)
+                } else tile.setViewVisibility(R.id.t_call, View.GONE)
+
+                if (z.address.isNotBlank()) {
+                    tile.setOnClickPendingIntent(R.id.t_map, PendingIntent.getActivity(
+                        ctx, z.id.toInt() * 100 + 2,
+                        Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://yandex.ru/maps/?text=" + Uri.encode(z.address)))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                    tile.setViewVisibility(R.id.t_map, View.VISIBLE)
+                } else tile.setViewVisibility(R.id.t_map, View.GONE)
+
+                tile.setOnClickPendingIntent(R.id.t_root, PendingIntent.getActivity(
+                    ctx, z.id.toInt() * 100 + 3,
+                    Intent(ctx, MainActivity::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+
+                rv.addView(R.id.w_tiles, tile)
             }
         }
 
-        val openPi = PendingIntent.getActivity(
-            ctx, 0,
-            Intent(ctx, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        rv.setOnClickPendingIntent(R.id.w_root, openPi)
+        rv.setOnClickPendingIntent(R.id.w_title, PendingIntent.getActivity(
+            ctx, 0, Intent(ctx, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
         mgr.updateAppWidget(id, rv)
     }
 
     companion object {
         fun refreshAll(ctx: Context) {
+            val mgr = AppWidgetManager.getInstance(ctx)
+            val ids = mgr.getAppWidgetIds(ComponentName(ctx, ZamerWidget::class.java))
             val intent = Intent(ctx, ZamerWidget::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
             }
-            val mgr = AppWidgetManager.getInstance(ctx)
-            val ids = mgr.getAppWidgetIds(android.content.ComponentName(ctx, ZamerWidget::class.java))
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
             ctx.sendBroadcast(intent)
         }
     }
