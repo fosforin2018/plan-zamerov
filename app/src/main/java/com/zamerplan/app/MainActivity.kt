@@ -1,10 +1,15 @@
 package com.zamerplan.app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -35,14 +41,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.zamerplan.app.alarm.ReminderScheduler
+import com.zamerplan.app.alarm.SettingsStore
+import com.zamerplan.app.alarm.VoiceRecorder
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
-import com.zamerplan.app.ui.MonthCalendar
+import com.zamerplan.app.ui.CollapsibleCalendar
 import com.zamerplan.app.ui.Orange
 import com.zamerplan.app.ui.RescheduleDialog
+import com.zamerplan.app.ui.SettingsScreen
 import com.zamerplan.app.ui.ZamerCard
 import com.zamerplan.app.ui.ZamerFormDialog
+import com.zamerplan.app.widget.ZamerWidget
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -50,12 +62,26 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private lateinit var storage: Storage
+    private lateinit var settings: SettingsStore
     private val zamers = mutableStateListOf<Zamer>()
+    private val recorder = VoiceRecorder(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         storage = Storage(this)
+        settings = SettingsStore(this)
         zamers.addAll(storage.load())
+
+        // Разрешение уведомлений (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
+            }
+        }
+
+        // Пересобрать будильники
+        ReminderScheduler.scheduleAll(this, zamers, settings)
 
         setContent {
             val dark = isSystemInDarkTheme()
@@ -63,17 +89,50 @@ class MainActivity : ComponentActivity() {
                 colorScheme = if (dark) darkColorScheme(primary = Orange) else lightColorScheme(primary = Orange)
             ) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    MainScreen(
-                        zamers = zamers,
-                        onSave = { z -> zamers.add(z); storage.save(zamers) },
-                        onUpdate = { z ->
-                            val i = zamers.indexOfFirst { it.id == z.id }
-                            if (i >= 0) zamers[i] = z
-                            storage.save(zamers)
-                        }
-                    )
+                    AppRoot()
                 }
             }
+        }
+    }
+
+    private fun save() {
+        storage.save(zamers)
+        ReminderScheduler.scheduleAll(this, zamers, settings)
+        ZamerWidget.refreshAll(this)
+    }
+
+    @Composable
+    private fun AppRoot() {
+        var screen by remember { mutableStateOf("main") }
+        if (screen == "main") {
+            MainScreen(
+                zamers = zamers,
+                recorder = recorder,
+                settings = settings,
+                onOpenSettings = { screen = "settings" },
+                onSave = { z ->
+                    zamers.add(z)
+                    save()
+                },
+                onUpdate = { z ->
+                    val i = zamers.indexOfFirst { it.id == z.id }
+                    if (i >= 0) {
+                        zamers[i] = z
+                        ReminderScheduler.schedule(this, z, settings)
+                    }
+                    storage.save(zamers)
+                    ZamerWidget.refreshAll(this)
+                },
+                onDelete = { z ->
+                    storage.deleteVoice(z.id)
+                    ReminderScheduler.cancel(this, z.id)
+                    zamers.removeAll { it.id == z.id }
+                    storage.save(zamers)
+                    ZamerWidget.refreshAll(this)
+                }
+            )
+        } else {
+            SettingsScreen(onBack = { screen = "main" }, store = settings)
         }
     }
 }
@@ -81,8 +140,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     zamers: List<Zamer>,
+    recorder: VoiceRecorder,
+    settings: SettingsStore,
+    onOpenSettings: () -> Unit,
     onSave: (Zamer) -> Unit,
-    onUpdate: (Zamer) -> Unit
+    onUpdate: (Zamer) -> Unit,
+    onDelete: (Zamer) -> Unit
 ) {
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var month by remember { mutableStateOf(YearMonth.now()) }
@@ -93,8 +156,10 @@ fun MainScreen(
 
     @Composable
     fun CardSlot(z: Zamer) {
+        val voiceFile = java.io.File(context.filesDir, "voice_${z.id}.m4a")
         ZamerCard(
             z = z,
+            hasVoice = voiceFile.exists(),
             onCall = {
                 val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
                 if (tel.isNotEmpty()) {
@@ -105,14 +170,18 @@ fun MainScreen(
                 if (z.address.isNotBlank()) {
                     val enc = Uri.encode(z.address)
                     try {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://yandex.ru/maps/?text=$enc")))
+                        context.startActivity(Intent(Intent.ACTION_VIEW,
+                            Uri.parse("https://yandex.ru/maps/?text=$enc")))
                     } catch (e: Exception) { }
                 }
             },
             onDone = { onUpdate(z.copy(status = ZamerStatus.DONE)) },
             onReturn = { onUpdate(z.copy(status = ZamerStatus.PLANNED)) },
             onReschedule = { rescheduleTarget = z },
-            onEdit = { editTarget = z }
+            onEdit = { editTarget = z },
+            onPlayVoice = {
+                if (voiceFile.exists()) recorder.play(voiceFile)
+            }
         )
     }
 
@@ -135,14 +204,15 @@ fun MainScreen(
             modifier = Modifier.padding(pad).fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                "План замеров",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                textAlign = TextAlign.Center
-            )
-            MonthCalendar(
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("План замеров", fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f))
+                TextButton(onClick = onOpenSettings) { Text("⚙") }
+            }
+            CollapsibleCalendar(
                 month = month,
                 onMonthChange = { month = it },
                 selectedDate = selectedDate,
@@ -157,11 +227,9 @@ fun MainScreen(
                 fontSize = 15.sp
             )
             if (dayList.isEmpty()) {
-                Text(
-                    "Нет замеров на этот день. Нажмите «+», чтобы добавить.",
+                Text("Нет замеров на этот день. Нажмите «+», чтобы добавить.",
                     modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (dayList.size == 1) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp)) {
@@ -171,9 +239,7 @@ fun MainScreen(
                 dayList.chunked(2).forEach { rowItems ->
                     Row(modifier = Modifier.padding(horizontal = 12.dp)) {
                         rowItems.forEach { z ->
-                            Column(modifier = Modifier.weight(1f)) {
-                                CardSlot(z)
-                            }
+                            Column(modifier = Modifier.weight(1f)) { CardSlot(z) }
                         }
                         if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
@@ -186,6 +252,7 @@ fun MainScreen(
     if (showForm) {
         ZamerFormDialog(
             initialDate = selectedDate,
+            recorder = recorder,
             onSave = { z -> onSave(z); showForm = false },
             onDismiss = { showForm = false }
         )
@@ -195,6 +262,7 @@ fun MainScreen(
         ZamerFormDialog(
             initialDate = z.date,
             existing = z,
+            recorder = recorder,
             onSave = { updated -> onUpdate(updated); editTarget = null },
             onDismiss = { editTarget = null }
         )
