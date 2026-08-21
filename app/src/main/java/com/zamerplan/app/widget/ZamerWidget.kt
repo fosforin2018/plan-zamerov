@@ -85,8 +85,7 @@ class ZamerWidget : AppWidgetProvider() {
     }
 
     private fun buildCardRemoteViews(ctx: Context, z: Zamer, color: Int): RemoteViews {
-        val card = RemoteViews(ctx.packageName, R.layout.zamer_widget_item)
-
+        val card = RemoteViews(ctx.packageName, R.layout.zamer_widget_tile)
         // Время и полоска
         card.setTextViewText(R.id.t_time, z.timeText())
         card.setInt(R.id.t_stripe, "setBackgroundColor", color)
