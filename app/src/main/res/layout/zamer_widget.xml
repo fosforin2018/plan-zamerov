@@ -17,7 +17,6 @@
         android:textStyle="bold"
         android:padding="4dp" />
 
-    <!-- Контейнер для рядов (заполняется динамически) -->
     <LinearLayout
         android:id="@+id/card_container"
         android:layout_width="match_parent"
