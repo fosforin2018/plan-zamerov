@@ -1,157 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_tile_bg"
-    android:padding="12dp">
+    android:orientation="vertical"
+    android:background="@android:color/transparent"
+    android:padding="6dp">
 
     <TextView
         android:id="@+id/w_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="📏 План замеров"
-        android:textColor="#CCFFFFFF"
-        android:textSize="11sp"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
         android:textStyle="bold"
-        android:paddingBottom="6dp" />
+        android:padding="4dp" />
 
+    <!-- Контейнер для рядов (заполняется динамически) -->
     <LinearLayout
-        android:id="@+id/t_card"
-        android:orientation="vertical"
+        android:id="@+id/card_container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <View
-                android:id="@+id/t_stripe"
-                android:layout_width="4dp"
-                android:layout_height="20dp"
-                android:background="#F4511E" />
-
-            <TextView
-                android:id="@+id/t_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:textColor="#FF7043"
-                android:textSize="17sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <TextView
-                android:id="@+id/t_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#FFFFFF"
-                android:textSize="9sp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:background="#F4511E" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/t_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_marginTop="4dp"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/t_addr"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#B3FFFFFF"
-            android:textSize="12sp"
-            android:maxLines="2"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/t_meta"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#99FFFFFF"
-            android:textSize="11sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="8dp">
-
-            <TextView
-                android:id="@+id/t_price"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/t_call"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📞 Позвонить"
-                android:textColor="#FFAB91"
-                android:textSize="11sp"
-                android:background="@drawable/widget_btn_bg"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp" />
-
-            <TextView
-                android:id="@+id/t_map"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🗺 Карта"
-                android:textColor="#90CAF9"
-                android:textSize="11sp"
-                android:background="@drawable/widget_btn_bg"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:layout_marginStart="6dp" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/w_more"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#80FFFFFF"
-            android:textSize="10sp"
-            android:layout_marginTop="6dp" />
-    </LinearLayout>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical" />
 
     <TextView
         android:id="@+id/w_empty"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:text="Нет предстоящих замеров"
         android:textColor="#CCFFFFFF"
-        android:textSize="13sp"
+        android:textSize="14sp"
         android:gravity="center"
-        android:padding="16dp"
         android:visibility="gone" />
 </LinearLayout>
