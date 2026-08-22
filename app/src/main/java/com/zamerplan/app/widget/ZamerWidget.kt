@@ -36,17 +36,14 @@ class ZamerWidget : AppWidgetProvider() {
         try {
             val rv = RemoteViews(ctx.packageName, R.layout.zamer_widget)
 
-            // Получаем все замеры
             val all = Storage(ctx).load()
             val today = LocalDate.now()
 
-            // Сегодняшние и будущие, но без дубликатов: futureItems только date > today
             val todayItems = all.filter { it.date == today }.sortedBy { it.time }
             val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
                 .sortedWith(compareBy({ it.date }, { it.time }))
             val list = (todayItems + futureItems).take(4)
 
-            // Клик по корню – открыть приложение
             rv.setOnClickPendingIntent(R.id.w_root, PendingIntent.getActivity(
                 ctx, 0, Intent(ctx, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
