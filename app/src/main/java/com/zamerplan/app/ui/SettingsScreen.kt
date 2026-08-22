@@ -112,14 +112,6 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
             },
             confirmButton = {
                 TextButton(onClick = { showLogs = false }) { Text("Закрыть") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    // Копирование в буфер обмена (опционально)
-                    val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("Logs", logsText))
-                    showLogs = false
-                }) { Text("Копировать") }
             }
         )
     }
