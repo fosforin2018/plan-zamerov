@@ -7,25 +7,11 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -33,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.alarm.SettingsStore
+import java.io.File
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
@@ -42,13 +29,17 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
     var b2h by remember { mutableStateOf(store.before2h) }
     var b30 by remember { mutableStateOf(store.before30m) }
     var b10 by remember { mutableStateOf(store.before10m) }
+    var showLogs by remember { mutableStateOf(false) }
+    var logsText by remember { mutableStateOf("") }
 
     fun ringName(): String {
         if (ringUri.isBlank()) return "Стандартное уведомление"
         return try {
             val r = RingtoneManager.getRingtone(ctx, Uri.parse(ringUri))
             r?.getTitle(ctx) ?: "Выбранная мелодия"
-        } catch (e: Exception) { "Выбранная мелодия" }
+        } catch (e: Exception) {
+            "Выбранная мелодия"
+        }
     }
 
     val picker = rememberLauncherForActivityResult(
@@ -69,16 +60,13 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
             TextButton(onClick = onBack) { Text("← Назад") }
             Spacer(Modifier.weight(1f))
         }
-        Text("⚙ Настройки", fontSize = 22.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp))
-
+        Text("⚙ Настройки", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
         Text("Напоминать о замере:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         CheckRow("За 1 день", bDay) { bDay = it; store.beforeDay = it }
         CheckRow("За 2 часа", b2h) { b2h = it; store.before2h = it }
         CheckRow("За 30 минут", b30) { b30 = it; store.before30m = it }
         CheckRow("За 10 минут", b10) { b10 = it; store.before10m = it }
-
         Spacer(Modifier.height(16.dp))
         Text("Мелодия:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         TextButton(onClick = {
@@ -92,11 +80,9 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
             }
             picker.launch(intent)
         }) { Text("🎵 " + ringName(), color = Orange) }
-
         Spacer(Modifier.height(24.dp))
         Text("💡 Разрешения", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        Text("Если напоминания не срабатывают — разрешите точные будильники:",
-            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Если напоминания не срабатывают — разрешите точные будильники:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         TextButton(onClick = {
             try {
                 ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -104,6 +90,38 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
                 })
             } catch (e: Exception) { }
         }) { Text("Открыть настройки приложения", color = Orange) }
+        Spacer(Modifier.height(16.dp))
+        // Кнопка для показа логов виджета
+        TextButton(onClick = {
+            val file = File(ctx.filesDir, "widget_log.txt")
+            logsText = if (file.exists()) file.readText() else "Файл логов не найден"
+            showLogs = true
+        }) { Text("📋 Показать логи виджета", color = Blue) }
+    }
+
+    if (showLogs) {
+        AlertDialog(
+            onDismissRequest = { showLogs = false },
+            title = { Text("Логи виджета") },
+            text = {
+                Text(
+                    text = logsText,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.heightIn(max = 400.dp)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showLogs = false }) { Text("Закрыть") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    // Копирование в буфер обмена (опционально)
+                    val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("Logs", logsText))
+                    showLogs = false
+                }) { Text("Копировать") }
+            }
+        )
     }
 }
 
