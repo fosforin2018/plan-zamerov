@@ -32,18 +32,23 @@ class ZamerWidget : AppWidgetProvider() {
         ZamerStatus.CANCELLED -> 0xFFE53935.toInt()
     }
 
+    // Список ID карточек
+    private val cardIds = listOf(
+        R.id.card_1, R.id.card_2, R.id.card_3,
+        R.id.card_4, R.id.card_5, R.id.card_6
+    )
+
     private fun update(ctx: Context, mgr: AppWidgetManager, id: Int) {
         try {
             val rv = RemoteViews(ctx.packageName, R.layout.zamer_widget)
 
-            // Получаем список замеров: сначала сегодняшние, потом будущие
+            // Получаем список замеров
             val all = Storage(ctx).load()
             val today = LocalDate.now()
             val todayItems = all.filter { it.date == today }.sortedBy { it.time }
             val upcoming = all.filter { it.status == ZamerStatus.PLANNED && it.date >= today }
                 .sortedWith(compareBy({ it.date }, { it.time }))
-            val list = todayItems + upcoming
-            val maxCards = 8 // ограничение на количество карточек (можно больше)
+            val list = (todayItems + upcoming).take(6) // максимум 6
 
             // Клик по корню – открыть приложение
             rv.setOnClickPendingIntent(R.id.w_root, PendingIntent.getActivity(
@@ -52,29 +57,24 @@ class ZamerWidget : AppWidgetProvider() {
             ))
 
             if (list.isEmpty()) {
-                rv.setViewVisibility(R.id.card_container, View.GONE)
                 rv.setViewVisibility(R.id.w_empty, View.VISIBLE)
+                cardIds.forEach { cardId -> rv.setViewVisibility(cardId, View.GONE) }
                 rv.setTextViewText(R.id.w_title, "📏 План замеров")
             } else {
-                rv.setViewVisibility(R.id.card_container, View.VISIBLE)
                 rv.setViewVisibility(R.id.w_empty, View.GONE)
                 rv.setTextViewText(R.id.w_title, "📏 План замеров · ${list.size} шт.")
 
-                // Берём до maxCards замеров
-                val visibleList = list.take(maxCards)
-                // Группируем по 2 (пары)
-                val rows = visibleList.chunked(2)
-
-                // Добавляем каждую пару как отдельный ряд
-                rows.forEach { pair ->
-                    val row = RemoteViews(ctx.packageName, R.layout.zamer_widget_row)
-                    pair.forEach { z ->
-                        val card = buildCardRemoteViews(ctx, z, statusColor(z.status))
-                        row.addView(R.id.row_root, card) // id ряда? У нас в zamer_widget_row.xml нет id, но можно использовать сам корень (id = row_root?)
-                        // Добавим id в XML ряда: android:id="@+id/row_root"
-                        // Тогда row.addView(R.id.row_root, card) добавит карточку в ряд.
+                // Проходим по всем карточкам
+                cardIds.forEachIndexed { index, cardId ->
+                    val z = list.getOrNull(index)
+                    if (z != null) {
+                        rv.setViewVisibility(cardId, View.VISIBLE)
+                        // Заполняем поля в зависимости от индекса
+                        val prefix = "t${index + 1}_"
+                        fillCard(rv, ctx, z, prefix, statusColor(z.status))
+                    } else {
+                        rv.setViewVisibility(cardId, View.GONE)
                     }
-                    rv.addView(R.id.card_container, row)
                 }
             }
 
@@ -84,29 +84,39 @@ class ZamerWidget : AppWidgetProvider() {
         }
     }
 
-    private fun buildCardRemoteViews(ctx: Context, z: Zamer, color: Int): RemoteViews {
-        val card = RemoteViews(ctx.packageName, R.layout.zamer_widget_tile)
+    private fun fillCard(rv: RemoteViews, ctx: Context, z: Zamer, prefix: String, color: Int) {
+        // Динамически формируем ID
+        val timeId = ctx.resources.getIdentifier(prefix + "time", "id", ctx.packageName)
+        val stripeId = ctx.resources.getIdentifier(prefix + "stripe", "id", ctx.packageName)
+        val statusId = ctx.resources.getIdentifier(prefix + "status", "id", ctx.packageName)
+        val nameId = ctx.resources.getIdentifier(prefix + "name", "id", ctx.packageName)
+        val addrId = ctx.resources.getIdentifier(prefix + "addr", "id", ctx.packageName)
+        val metaId = ctx.resources.getIdentifier(prefix + "meta", "id", ctx.packageName)
+        val priceId = ctx.resources.getIdentifier(prefix + "price", "id", ctx.packageName)
+        val callId = ctx.resources.getIdentifier(prefix + "call", "id", ctx.packageName)
+        val mapId = ctx.resources.getIdentifier(prefix + "map", "id", ctx.packageName)
+
         // Время и полоска
-        card.setTextViewText(R.id.t_time, z.timeText())
-        card.setInt(R.id.t_stripe, "setBackgroundColor", color)
+        rv.setTextViewText(timeId, z.timeText())
+        rv.setInt(stripeId, "setBackgroundColor", color)
 
         // Статус
-        card.setTextViewText(R.id.t_status, z.status.label)
-        card.setInt(R.id.t_status, "setBackgroundColor", color)
+        rv.setTextViewText(statusId, z.status.label)
+        rv.setInt(statusId, "setBackgroundColor", color)
 
         // Имя
         if (z.name.isNotBlank()) {
-            card.setTextViewText(R.id.t_name, z.name)
-            card.setViewVisibility(R.id.t_name, View.VISIBLE)
-        } else card.setViewVisibility(R.id.t_name, View.GONE)
+            rv.setTextViewText(nameId, z.name)
+            rv.setViewVisibility(nameId, View.VISIBLE)
+        } else rv.setViewVisibility(nameId, View.GONE)
 
         // Адрес
         if (z.address.isNotBlank()) {
-            card.setTextViewText(R.id.t_addr, z.address)
-            card.setViewVisibility(R.id.t_addr, View.VISIBLE)
-        } else card.setViewVisibility(R.id.t_addr, View.GONE)
+            rv.setTextViewText(addrId, z.address)
+            rv.setViewVisibility(addrId, View.VISIBLE)
+        } else rv.setViewVisibility(addrId, View.GONE)
 
-        // Мета
+        // Мета (от кого, площадь, толщина)
         val meta = listOf(
             if (z.contactFrom.isNotBlank()) "От: " + z.contactFrom else "",
             z.area,
@@ -114,36 +124,34 @@ class ZamerWidget : AppWidgetProvider() {
         ).filter { it.isNotBlank() }.joinToString(" · ")
 
         if (meta.isNotBlank()) {
-            card.setTextViewText(R.id.t_meta, meta)
-            card.setViewVisibility(R.id.t_meta, View.VISIBLE)
-        } else card.setViewVisibility(R.id.t_meta, View.GONE)
+            rv.setTextViewText(metaId, meta)
+            rv.setViewVisibility(metaId, View.VISIBLE)
+        } else rv.setViewVisibility(metaId, View.GONE)
 
         // Цена
-        card.setTextViewText(R.id.t_price, if (z.price.isNotBlank()) z.price + " ₽" else "")
+        rv.setTextViewText(priceId, if (z.price.isNotBlank()) z.price + " ₽" else "")
 
         // Кнопка "Позвонить"
         val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
         if (tel.isNotEmpty()) {
-            card.setOnClickPendingIntent(R.id.t_call, PendingIntent.getActivity(
+            rv.setOnClickPendingIntent(callId, PendingIntent.getActivity(
                 ctx, z.id.toInt(), Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             ))
-            card.setViewVisibility(R.id.t_call, View.VISIBLE)
-        } else card.setViewVisibility(R.id.t_call, View.GONE)
+            rv.setViewVisibility(callId, View.VISIBLE)
+        } else rv.setViewVisibility(callId, View.GONE)
 
         // Кнопка "Карта"
         if (z.address.isNotBlank()) {
-            card.setOnClickPendingIntent(R.id.t_map, PendingIntent.getActivity(
+            rv.setOnClickPendingIntent(mapId, PendingIntent.getActivity(
                 ctx, z.id.toInt() + 1000, Intent(Intent.ACTION_VIEW,
                     Uri.parse("https://yandex.ru/maps/?text=" + Uri.encode(z.address)))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             ))
-            card.setViewVisibility(R.id.t_map, View.VISIBLE)
-        } else card.setViewVisibility(R.id.t_map, View.GONE)
-
-        return card
+            rv.setViewVisibility(mapId, View.VISIBLE)
+        } else rv.setViewVisibility(mapId, View.GONE)
     }
 
     companion object {
