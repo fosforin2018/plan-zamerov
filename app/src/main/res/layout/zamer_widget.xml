@@ -33,39 +33,15 @@
             android:orientation="vertical"
             android:background="@drawable/widget_card_bg"
             android:padding="8dp"
-            android:layout_margin="3dp">
+            android:layout_margin="4dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/t1_time"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/t1_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FF7043"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:id="@+id/t1_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
-                    android:textSize="9sp"
-                    android:background="#F4511E"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-            </LinearLayout>
+                android:textColor="#FF7043"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/t1_name"
@@ -73,10 +49,8 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
-                android:textStyle="bold"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:layout_marginTop="2dp" />
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/t1_addr"
@@ -84,39 +58,32 @@
                 android:layout_height="wrap_content"
                 android:textColor="#B3FFFFFF"
                 android:textSize="11sp"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:ellipsize="end" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
 
                 <TextView
                     android:id="@+id/t1_call"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📞 Позвонить"
+                    android:layout_height="wrap_content"
+                    android:text="📞"
                     android:textColor="#FFAB91"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center" />
+                    android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/t1_map"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗺 Карта"
+                    android:text="📍"
                     android:textColor="#90CAF9"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center"
-                    android:layout_marginStart="4dp" />
+                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -129,39 +96,15 @@
             android:orientation="vertical"
             android:background="@drawable/widget_card_bg"
             android:padding="8dp"
-            android:layout_margin="3dp">
+            android:layout_margin="4dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/t2_time"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/t2_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FF7043"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:id="@+id/t2_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
-                    android:textSize="9sp"
-                    android:background="#F4511E"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-            </LinearLayout>
+                android:textColor="#FF7043"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/t2_name"
@@ -169,10 +112,8 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
-                android:textStyle="bold"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:layout_marginTop="2dp" />
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/t2_addr"
@@ -180,39 +121,32 @@
                 android:layout_height="wrap_content"
                 android:textColor="#B3FFFFFF"
                 android:textSize="11sp"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:ellipsize="end" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
 
                 <TextView
                     android:id="@+id/t2_call"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📞 Позвонить"
+                    android:layout_height="wrap_content"
+                    android:text="📞"
                     android:textColor="#FFAB91"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center" />
+                    android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/t2_map"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗺 Карта"
+                    android:text="📍"
                     android:textColor="#90CAF9"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center"
-                    android:layout_marginStart="4dp" />
+                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
@@ -233,39 +167,15 @@
             android:orientation="vertical"
             android:background="@drawable/widget_card_bg"
             android:padding="8dp"
-            android:layout_margin="3dp">
+            android:layout_margin="4dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/t3_time"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/t3_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FF7043"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:id="@+id/t3_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
-                    android:textSize="9sp"
-                    android:background="#F4511E"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-            </LinearLayout>
+                android:textColor="#FF7043"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/t3_name"
@@ -273,10 +183,8 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
-                android:textStyle="bold"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:layout_marginTop="2dp" />
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/t3_addr"
@@ -284,39 +192,32 @@
                 android:layout_height="wrap_content"
                 android:textColor="#B3FFFFFF"
                 android:textSize="11sp"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:ellipsize="end" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
 
                 <TextView
                     android:id="@+id/t3_call"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📞 Позвонить"
+                    android:layout_height="wrap_content"
+                    android:text="📞"
                     android:textColor="#FFAB91"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center" />
+                    android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/t3_map"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗺 Карта"
+                    android:text="📍"
                     android:textColor="#90CAF9"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center"
-                    android:layout_marginStart="4dp" />
+                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -329,39 +230,15 @@
             android:orientation="vertical"
             android:background="@drawable/widget_card_bg"
             android:padding="8dp"
-            android:layout_margin="3dp">
+            android:layout_margin="4dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/t4_time"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/t4_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FF7043"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:id="@+id/t4_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
-                    android:textSize="9sp"
-                    android:background="#F4511E"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-            </LinearLayout>
+                android:textColor="#FF7043"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/t4_name"
@@ -369,10 +246,8 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
-                android:textStyle="bold"
                 android:maxLines="1"
-                android:ellipsize="end"
-                android:layout_marginTop="2dp" />
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/t4_addr"
@@ -380,39 +255,32 @@
                 android:layout_height="wrap_content"
                 android:textColor="#B3FFFFFF"
                 android:textSize="11sp"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:ellipsize="end" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
 
                 <TextView
                     android:id="@+id/t4_call"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📞 Позвонить"
+                    android:layout_height="wrap_content"
+                    android:text="📞"
                     android:textColor="#FFAB91"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center" />
+                    android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/t4_map"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🗺 Карта"
+                    android:text="📍"
                     android:textColor="#90CAF9"
-                    android:textSize="10sp"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="4dp"
-                    android:gravity="center"
-                    android:layout_marginStart="4dp" />
+                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
