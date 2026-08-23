@@ -32,6 +32,9 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
     var showLogs by remember { mutableStateOf(false) }
     var logsText by remember { mutableStateOf("") }
 
+    // Поля для темы
+    var themeMode by remember { mutableStateOf(store.themeMode) } // "system", "dark", "light"
+
     fun ringName(): String {
         if (ringUri.isBlank()) return "Стандартное уведомление"
         return try {
@@ -61,12 +64,30 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
             Spacer(Modifier.weight(1f))
         }
         Text("⚙ Настройки", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
+
+        // Блок темы
+        Text("Тема:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { themeMode = "system"; store.themeMode = "system" }) {
+                Text("Системная", color = if (themeMode == "system") Orange else Gray)
+            }
+            TextButton(onClick = { themeMode = "dark"; store.themeMode = "dark" }) {
+                Text("Тёмная", color = if (themeMode == "dark") Orange else Gray)
+            }
+            TextButton(onClick = { themeMode = "light"; store.themeMode = "light" }) {
+                Text("Светлая", color = if (themeMode == "light") Orange else Gray)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+
         Text("Напоминать о замере:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         CheckRow("За 1 день", bDay) { bDay = it; store.beforeDay = it }
         CheckRow("За 2 часа", b2h) { b2h = it; store.before2h = it }
         CheckRow("За 30 минут", b30) { b30 = it; store.before30m = it }
         CheckRow("За 10 минут", b10) { b10 = it; store.before10m = it }
+
         Spacer(Modifier.height(16.dp))
         Text("Мелодия:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         TextButton(onClick = {
@@ -80,6 +101,7 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
             }
             picker.launch(intent)
         }) { Text("🎵 " + ringName(), color = Orange) }
+
         Spacer(Modifier.height(24.dp))
         Text("💡 Разрешения", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Text("Если напоминания не срабатывают — разрешите точные будильники:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -90,8 +112,8 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
                 })
             } catch (e: Exception) { }
         }) { Text("Открыть настройки приложения", color = Orange) }
+
         Spacer(Modifier.height(16.dp))
-        // Кнопка для показа логов виджета
         TextButton(onClick = {
             val file = File(ctx.filesDir, "widget_log.txt")
             logsText = if (file.exists()) file.readText() else "Файл логов не найден"
