@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -24,7 +23,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
-// Цветовые константы (можно вынести в отдельный файл, но пока здесь)
+// Цветовые константы
 val Orange = Color(0xFFF4511E)
 val Green = Color(0xFF43A047)
 val Gray = Color(0xFF757575)
