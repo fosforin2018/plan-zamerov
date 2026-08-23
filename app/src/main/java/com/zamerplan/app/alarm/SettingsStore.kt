@@ -5,6 +5,10 @@ import android.content.Context
 class SettingsStore(ctx: Context) {
     private val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    var themeMode: String
+        get() = prefs.getString("theme", "system") ?: "system"
+        set(value) = prefs.edit().putString("theme", value).apply()
+    
     var ringtoneUri: String
         get() = prefs.getString("ringtone", "") ?: ""
         set(v) = prefs.edit().putString("ringtone", v).apply()
