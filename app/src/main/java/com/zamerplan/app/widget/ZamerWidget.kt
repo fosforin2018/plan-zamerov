@@ -39,6 +39,7 @@ class ZamerWidget : AppWidgetProvider() {
             val all = Storage(ctx).load()
             val today = LocalDate.now()
 
+            // Исправление дублей: futureItems только date > today
             val todayItems = all.filter { it.date == today }.sortedBy { it.time }
             val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
                 .sortedWith(compareBy({ it.date }, { it.time }))
@@ -60,25 +61,24 @@ class ZamerWidget : AppWidgetProvider() {
                 rv.setViewVisibility(R.id.w_empty, View.GONE)
                 rv.setTextViewText(R.id.w_title, "📏 План замеров · ${list.size} шт.")
 
-                // Карточка 1
-                fillCard(rv, ctx, list[0], R.id.card_1, R.id.t1_time, R.id.t1_status, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map, statusColor(list[0].status))
+                if (list.size > 0) {
+                    rv.setViewVisibility(R.id.card_1, View.VISIBLE)
+                    fillCard(rv, ctx, list[0], R.id.card_1, R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map, statusColor(list[0].status))
+                } else rv.setViewVisibility(R.id.card_1, View.GONE)
 
-                // Карточка 2
                 if (list.size > 1) {
                     rv.setViewVisibility(R.id.card_2, View.VISIBLE)
-                    fillCard(rv, ctx, list[1], R.id.card_2, R.id.t2_time, R.id.t2_status, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map, statusColor(list[1].status))
+                    fillCard(rv, ctx, list[1], R.id.card_2, R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map, statusColor(list[1].status))
                 } else rv.setViewVisibility(R.id.card_2, View.GONE)
 
-                // Карточка 3
                 if (list.size > 2) {
                     rv.setViewVisibility(R.id.card_3, View.VISIBLE)
-                    fillCard(rv, ctx, list[2], R.id.card_3, R.id.t3_time, R.id.t3_status, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map, statusColor(list[2].status))
+                    fillCard(rv, ctx, list[2], R.id.card_3, R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map, statusColor(list[2].status))
                 } else rv.setViewVisibility(R.id.card_3, View.GONE)
 
-                // Карточка 4
                 if (list.size > 3) {
                     rv.setViewVisibility(R.id.card_4, View.VISIBLE)
-                    fillCard(rv, ctx, list[3], R.id.card_4, R.id.t4_time, R.id.t4_status, R.id.t4_name, R.id.t4_addr, R.id.t4_call, R.id.t4_map, statusColor(list[3].status))
+                    fillCard(rv, ctx, list[3], R.id.card_4, R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_call, R.id.t4_map, statusColor(list[3].status))
                 } else rv.setViewVisibility(R.id.card_4, View.GONE)
             }
 
@@ -90,15 +90,18 @@ class ZamerWidget : AppWidgetProvider() {
 
     private fun fillCard(
         rv: RemoteViews, ctx: Context, z: Zamer,
-        cardId: Int, timeId: Int, statusId: Int, nameId: Int, addrId: Int, callId: Int, mapId: Int,
+        cardId: Int, timeId: Int, nameId: Int, addrId: Int, callId: Int, mapId: Int,
         color: Int
     ) {
-        rv.setViewVisibility(cardId, View.VISIBLE)
         rv.setTextViewText(timeId, z.timeText())
-        rv.setInt(statusId, "setBackgroundColor", color)
-        rv.setTextViewText(statusId, z.status.label)
-        rv.setTextViewText(nameId, if (z.name.isNotBlank()) z.name else "")
-        rv.setTextViewText(addrId, if (z.address.isNotBlank()) z.address else "")
+        if (z.name.isNotBlank()) {
+            rv.setTextViewText(nameId, z.name)
+            rv.setViewVisibility(nameId, View.VISIBLE)
+        } else rv.setViewVisibility(nameId, View.GONE)
+        if (z.address.isNotBlank()) {
+            rv.setTextViewText(addrId, z.address)
+            rv.setViewVisibility(addrId, View.VISIBLE)
+        } else rv.setViewVisibility(addrId, View.GONE)
 
         val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
         if (tel.isNotEmpty()) {
