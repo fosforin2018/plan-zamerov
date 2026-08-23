@@ -80,12 +80,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun save() {
-        storage.save(zamers)
-        ReminderScheduler.scheduleAll(this, zamers, settings)
-        ZamerWidget.refreshAll(this)
-    }
-
     @Composable
     private fun AppRoot() {
         var screen by remember { mutableStateOf("main") }
@@ -98,7 +92,9 @@ class MainActivity : ComponentActivity() {
                 onOpenSettings = { screen = "settings" },
                 onSave = { z ->
                     zamers.add(z)
-                    save()
+                    storage.save(zamers)
+                    ReminderScheduler.scheduleAll(this, zamers, settings)
+                    ZamerWidget.refreshAll(this)
                 },
                 onUpdate = { z ->
                     val i = zamers.indexOfFirst { it.id == z.id }
