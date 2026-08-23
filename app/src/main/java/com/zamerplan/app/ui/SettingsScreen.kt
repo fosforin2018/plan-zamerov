@@ -22,7 +22,7 @@ import com.zamerplan.app.alarm.SettingsStore
 import java.io.File
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
+fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () -> Unit) {
     val ctx = LocalContext.current
     var ringUri by remember { mutableStateOf(store.ringtoneUri) }
     var bDay by remember { mutableStateOf(store.beforeDay) }
@@ -32,8 +32,7 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
     var showLogs by remember { mutableStateOf(false) }
     var logsText by remember { mutableStateOf("") }
 
-    // Поля для темы
-    var themeMode by remember { mutableStateOf(store.themeMode) } // "system", "dark", "light"
+    var themeMode by remember { mutableStateOf(store.themeMode) }
 
     fun ringName(): String {
         if (ringUri.isBlank()) return "Стандартное уведомление"
@@ -65,17 +64,22 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore) {
         }
         Text("⚙ Настройки", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
-        // Блок темы
         Text("Тема:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { themeMode = "system"; store.themeMode = "system" }) {
+            TextButton(onClick = {
+                themeMode = "system"; store.themeMode = "system"; onThemeChanged()
+            }) {
                 Text("Системная", color = if (themeMode == "system") Orange else Gray)
             }
-            TextButton(onClick = { themeMode = "dark"; store.themeMode = "dark" }) {
+            TextButton(onClick = {
+                themeMode = "dark"; store.themeMode = "dark"; onThemeChanged()
+            }) {
                 Text("Тёмная", color = if (themeMode == "dark") Orange else Gray)
             }
-            TextButton(onClick = { themeMode = "light"; store.themeMode = "light" }) {
+            TextButton(onClick = {
+                themeMode = "light"; store.themeMode = "light"; onThemeChanged()
+            }) {
                 Text("Светлая", color = if (themeMode == "light") Orange else Gray)
             }
         }
