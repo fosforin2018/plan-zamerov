@@ -9,29 +9,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +42,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+
     private lateinit var storage: Storage
     private lateinit var settings: SettingsStore
     private val zamers = mutableStateListOf<Zamer>()
@@ -72,18 +55,24 @@ class MainActivity : ComponentActivity() {
         zamers.addAll(storage.load())
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
             }
         }
 
         ReminderScheduler.scheduleAll(this, zamers, settings)
 
+        // Читаем тему
+        val themeMode = settings.themeMode
+        val darkTheme = when (themeMode) {
+            "dark" -> true
+            "light" -> false
+            else -> isSystemInDarkTheme()
+        }
+
         setContent {
-            val dark = isSystemInDarkTheme()
             MaterialTheme(
-                colorScheme = if (dark) darkColorScheme(primary = Orange) else lightColorScheme(primary = Orange)
+                colorScheme = if (darkTheme) darkColorScheme(primary = Orange) else lightColorScheme(primary = Orange)
             ) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     AppRoot()
@@ -101,6 +90,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun AppRoot() {
         var screen by remember { mutableStateOf("main") }
+
         if (screen == "main") {
             MainScreen(
                 zamers = zamers,
@@ -129,7 +119,11 @@ class MainActivity : ComponentActivity() {
                 }
             )
         } else {
-            SettingsScreen(onBack = { screen = "main" }, store = settings)
+            SettingsScreen(
+                onBack = { screen = "main" },
+                store = settings,
+                onThemeChanged = { recreate() } // перезапускаем активность для применения темы
+            )
         }
     }
 }
@@ -149,6 +143,7 @@ fun MainScreen(
     var showForm by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Zamer?>(null) }
     var rescheduleTarget by remember { mutableStateOf<Zamer?>(null) }
+
     val context = LocalContext.current
 
     @Composable
@@ -167,8 +162,7 @@ fun MainScreen(
                 if (z.address.isNotBlank()) {
                     val enc = Uri.encode(z.address)
                     try {
-                        context.startActivity(Intent(Intent.ACTION_VIEW,
-                            Uri.parse("https://yandex.ru/maps/?text=$enc")))
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://yandex.ru/maps/?text=$enc")))
                     } catch (e: Exception) { }
                 }
             },
@@ -176,14 +170,13 @@ fun MainScreen(
             onReturn = { onUpdate(z.copy(status = ZamerStatus.PLANNED)) },
             onReschedule = { rescheduleTarget = z },
             onEdit = { editTarget = z },
-            onPlayVoice = {
-                if (voiceFile.exists()) recorder.play(voiceFile)
-            }
+            onPlayVoice = { if (voiceFile.exists()) recorder.play(voiceFile) }
         )
     }
 
     val counts = zamers.filter { it.status != ZamerStatus.CANCELLED }
         .groupingBy { it.date }.eachCount()
+
     val dayList = zamers.filter { it.date == selectedDate }.sortedBy { it.time }
     val daySum = dayList.filter { it.status != ZamerStatus.CANCELLED }
         .sumOf { it.price.toIntOrNull() ?: 0 }
@@ -194,7 +187,9 @@ fun MainScreen(
                 onClick = { showForm = true },
                 containerColor = Orange,
                 contentColor = Color.White
-            ) { Text("+", fontSize = 28.sp) }
+            ) {
+                Text("+", fontSize = 28.sp)
+            }
         }
     ) { pad ->
         Column(
@@ -205,8 +200,7 @@ fun MainScreen(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("План замеров", fontSize = 22.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f))
+                Text("План замеров", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 TextButton(onClick = onOpenSettings) { Text("⚙") }
             }
             CollapsibleCalendar(
@@ -218,7 +212,7 @@ fun MainScreen(
             )
             Text(
                 selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))) +
-                    " · замеров: " + dayList.size + " · " + daySum + " ₽",
+                        " · замеров: " + dayList.size + " · " + daySum + " ₽",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
@@ -236,7 +230,9 @@ fun MainScreen(
                 dayList.chunked(2).forEach { rowItems ->
                     Row(modifier = Modifier.padding(horizontal = 12.dp)) {
                         rowItems.forEach { z ->
-                            Column(modifier = Modifier.weight(1f)) { CardSlot(z) }
+                            Column(modifier = Modifier.weight(1f)) {
+                                CardSlot(z)
+                            }
                         }
                         if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
@@ -250,7 +246,10 @@ fun MainScreen(
         ZamerFormDialog(
             initialDate = selectedDate,
             recorder = recorder,
-            onSave = { z -> onSave(z); showForm = false },
+            onSave = { z ->
+                onSave(z)
+                showForm = false
+            },
             onDismiss = { showForm = false }
         )
     }
@@ -260,15 +259,24 @@ fun MainScreen(
             initialDate = z.date,
             existing = z,
             recorder = recorder,
-            onSave = { updated -> onUpdate(updated); editTarget = null },
+            onSave = { updated ->
+                onUpdate(updated)
+                editTarget = null
+            },
             onDismiss = { editTarget = null }
         )
     }
 
     rescheduleTarget?.let { z ->
         RescheduleDialog(
-            onMove = { d -> onUpdate(z.copy(date = d, status = ZamerStatus.PLANNED)); rescheduleTarget = null },
-            onCancelZamer = { onUpdate(z.copy(status = ZamerStatus.CANCELLED)); rescheduleTarget = null },
+            onMove = { d ->
+                onUpdate(z.copy(date = d, status = ZamerStatus.PLANNED))
+                rescheduleTarget = null
+            },
+            onCancelZamer = {
+                onUpdate(z.copy(status = ZamerStatus.CANCELLED))
+                rescheduleTarget = null
+            },
             onDismiss = { rescheduleTarget = null }
         )
     }
