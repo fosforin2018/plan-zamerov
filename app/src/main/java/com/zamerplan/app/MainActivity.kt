@@ -62,7 +62,6 @@ class MainActivity : ComponentActivity() {
 
         ReminderScheduler.scheduleAll(this, zamers, settings)
 
-        // Читаем тему
         val themeMode = settings.themeMode
         val darkTheme = when (themeMode) {
             "dark" -> true
@@ -122,7 +121,7 @@ class MainActivity : ComponentActivity() {
             SettingsScreen(
                 onBack = { screen = "main" },
                 store = settings,
-                onThemeChanged = { recreate() } // перезапускаем активность для применения темы
+                onThemeChanged = { recreate() }
             )
         }
     }
