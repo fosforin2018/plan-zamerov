@@ -1,8 +1,8 @@
 package com.zamerplan.app.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -26,7 +26,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// Цветовые константы (можно вынести в отдельный файл, но пока здесь)
+// Цветовые константы
 val Orange = Color(0xFFF4511E)
 val Green = Color(0xFF43A047)
 val Gray = Color(0xFF757575)
@@ -64,7 +64,6 @@ fun CollapsibleCalendar(
         border = BorderStroke(1.dp, CalendarBorder)
     ) {
         Column(modifier = Modifier.animateContentSize()) {
-            // Заголовок календаря
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -100,7 +99,6 @@ fun MonthCalendar(
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(ru) else it.toString() }
 
     Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-        // Навигация по месяцам
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -117,7 +115,6 @@ fun MonthCalendar(
             TextButton(onClick = { onMonthChange(month.plusMonths(1)) }) { Text("›", color = Orange) }
         }
 
-        // Дни недели
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { d ->
                 Text(
@@ -130,7 +127,6 @@ fun MonthCalendar(
             }
         }
 
-        // Ячейки дней
         val offset = month.atDay(1).dayOfWeek.value - 1
         val cells = mutableListOf<LocalDate?>()
         repeat(offset) { cells.add(null) }
@@ -236,7 +232,6 @@ fun ZamerCard(
         border = BorderStroke(1.dp, DarkCardBorder)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            // Цветная полоска слева (статус)
             Box(modifier = Modifier.width(6.dp).background(statusColor(z.status)))
 
             Column(modifier = Modifier.weight(1f).padding(12.dp)) {
