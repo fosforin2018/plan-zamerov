@@ -42,7 +42,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var storage: Storage
     private lateinit var settings: SettingsStore
     private val zamers = mutableStateListOf<Zamer>()
@@ -59,17 +58,15 @@ class MainActivity : ComponentActivity() {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
             }
         }
-
         ReminderScheduler.scheduleAll(this, zamers, settings)
 
         val themeMode = settings.themeMode
-        val darkTheme = when (themeMode) {
-            "dark" -> true
-            "light" -> false
-            else -> isSystemInDarkTheme()
-        }
-
         setContent {
+            val darkTheme = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
             MaterialTheme(
                 colorScheme = if (darkTheme) darkColorScheme(primary = Orange) else lightColorScheme(primary = Orange)
             ) {
@@ -83,7 +80,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun AppRoot() {
         var screen by remember { mutableStateOf("main") }
-
         if (screen == "main") {
             MainScreen(
                 zamers = zamers,
@@ -171,7 +167,6 @@ fun MainScreen(
 
     val counts = zamers.filter { it.status != ZamerStatus.CANCELLED }
         .groupingBy { it.date }.eachCount()
-
     val dayList = zamers.filter { it.date == selectedDate }.sortedBy { it.time }
     val daySum = dayList.filter { it.status != ZamerStatus.CANCELLED }
         .sumOf { it.price.toIntOrNull() ?: 0 }
@@ -182,9 +177,7 @@ fun MainScreen(
                 onClick = { showForm = true },
                 containerColor = Orange,
                 contentColor = Color.White
-            ) {
-                Text("+", fontSize = 28.sp)
-            }
+            ) { Text("+", fontSize = 28.sp) }
         }
     ) { pad ->
         Column(
@@ -207,7 +200,7 @@ fun MainScreen(
             )
             Text(
                 selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))) +
-                        " · замеров: " + dayList.size + " · " + daySum + " ₽",
+                    " · замеров: " + dayList.size + " · " + daySum + " ₽",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
@@ -215,7 +208,8 @@ fun MainScreen(
             if (dayList.isEmpty()) {
                 Text("Нет замеров на этот день. Нажмите «+», чтобы добавить.",
                     modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             if (dayList.size == 1) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp)) {
@@ -225,9 +219,7 @@ fun MainScreen(
                 dayList.chunked(2).forEach { rowItems ->
                     Row(modifier = Modifier.padding(horizontal = 12.dp)) {
                         rowItems.forEach { z ->
-                            Column(modifier = Modifier.weight(1f)) {
-                                CardSlot(z)
-                            }
+                            Column(modifier = Modifier.weight(1f)) { CardSlot(z) }
                         }
                         if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
@@ -241,37 +233,23 @@ fun MainScreen(
         ZamerFormDialog(
             initialDate = selectedDate,
             recorder = recorder,
-            onSave = { z ->
-                onSave(z)
-                showForm = false
-            },
+            onSave = { z -> onSave(z); showForm = false },
             onDismiss = { showForm = false }
         )
     }
-
     editTarget?.let { z ->
         ZamerFormDialog(
             initialDate = z.date,
             existing = z,
             recorder = recorder,
-            onSave = { updated ->
-                onUpdate(updated)
-                editTarget = null
-            },
+            onSave = { updated -> onUpdate(updated); editTarget = null },
             onDismiss = { editTarget = null }
         )
     }
-
     rescheduleTarget?.let { z ->
         RescheduleDialog(
-            onMove = { d ->
-                onUpdate(z.copy(date = d, status = ZamerStatus.PLANNED))
-                rescheduleTarget = null
-            },
-            onCancelZamer = {
-                onUpdate(z.copy(status = ZamerStatus.CANCELLED))
-                rescheduleTarget = null
-            },
+            onMove = { d -> onUpdate(z.copy(date = d, status = ZamerStatus.PLANNED)); rescheduleTarget = null },
+            onCancelZamer = { onUpdate(z.copy(status = ZamerStatus.CANCELLED)); rescheduleTarget = null },
             onDismiss = { rescheduleTarget = null }
         )
     }
