@@ -26,19 +26,17 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// Цветовые константы
 val Orange = Color(0xFFF4511E)
 val Green = Color(0xFF43A047)
 val Gray = Color(0xFF757575)
 val Red = Color(0xFFE53935)
 val Blue = Color(0xFF1E88E5)
 
-// Премиум‑цвета
-val DarkCardBg = Color(0xCC1E1E1E)          // полупрозрачный тёмный
-val DarkCardBorder = Color(0x33FFFFFF)      // лёгкая окантовка
+val DarkCardBg = Color(0xCC1E1E1E)
+val DarkCardBorder = Color(0x33FFFFFF)
 val TextPrimary = Color(0xFFF5F5F5)
 val TextSecondary = Color(0xFFB3FFFFFF)
-val CalendarBg = Color(0xCC1E1E1E)          // фон календаря
+val CalendarBg = Color(0xCC1E1E1E)
 val CalendarBorder = Color(0x33FFFFFF)
 
 fun statusColor(s: ZamerStatus): Color = when (s) {
@@ -70,7 +68,7 @@ fun CollapsibleCalendar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "📅 Календарь",
+                    "Календарь",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary,
