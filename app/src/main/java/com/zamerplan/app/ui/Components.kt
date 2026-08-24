@@ -2,6 +2,7 @@ package com.zamerplan.app.ui
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -22,19 +24,22 @@ import com.zamerplan.app.model.ZamerStatus
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-// Цветовые константы
+// Цветовые константы (можно вынести в отдельный файл, но пока здесь)
 val Orange = Color(0xFFF4511E)
 val Green = Color(0xFF43A047)
 val Gray = Color(0xFF757575)
 val Red = Color(0xFFE53935)
 val Blue = Color(0xFF1E88E5)
 
-// Для тёмного премиум-стиля
-val DarkCardBg = Color(0xCC1E1E1E) // полупрозрачный тёмный
-val DarkCardBorder = Color(0x33FFFFFF) // лёгкая окантовка
+// Премиум‑цвета
+val DarkCardBg = Color(0xCC1E1E1E)          // полупрозрачный тёмный
+val DarkCardBorder = Color(0x33FFFFFF)      // лёгкая окантовка
 val TextPrimary = Color(0xFFF5F5F5)
 val TextSecondary = Color(0xFFB3FFFFFF)
+val CalendarBg = Color(0xCC1E1E1E)          // фон календаря
+val CalendarBorder = Color(0x33FFFFFF)
 
 fun statusColor(s: ZamerStatus): Color = when (s) {
     ZamerStatus.PLANNED -> Orange
@@ -55,9 +60,11 @@ fun CollapsibleCalendar(
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = CalendarBg),
+        border = BorderStroke(1.dp, CalendarBorder)
     ) {
         Column(modifier = Modifier.animateContentSize()) {
+            // Заголовок календаря
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -67,6 +74,7 @@ fun CollapsibleCalendar(
                     "📅 Календарь",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
                     modifier = Modifier.weight(1f)
                 )
                 Text(if (expanded) "▲" else "▼", color = Orange, fontSize = 14.sp)
@@ -91,20 +99,38 @@ fun MonthCalendar(
     val title = DateTimeFormatter.ofPattern("LLLL yyyy", ru).format(month.atDay(1))
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(ru) else it.toString() }
 
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+        // Навигация по месяцам
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = { onMonthChange(month.minusMonths(1)) }) { Text("‹") }
-            Text(text = title, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            TextButton(onClick = { onMonthChange(month.plusMonths(1)) }) { Text("›") }
+            TextButton(onClick = { onMonthChange(month.minusMonths(1)) }) { Text("‹", color = Orange) }
+            Text(
+                text = title,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = TextPrimary
+            )
+            TextButton(onClick = { onMonthChange(month.plusMonths(1)) }) { Text("›", color = Orange) }
         }
-        Row(modifier = Modifier.padding(horizontal = 16.dp)) {
+
+        // Дни недели
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { d ->
-                Text(d, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    d,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 11.sp,
+                    color = TextSecondary
+                )
             }
         }
+
+        // Ячейки дней
         val offset = month.atDay(1).dayOfWeek.value - 1
         val cells = mutableListOf<LocalDate?>()
         repeat(offset) { cells.add(null) }
@@ -112,29 +138,43 @@ fun MonthCalendar(
         while (cells.size % 7 != 0) cells.add(null)
 
         cells.chunked(7).forEach { week ->
-            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) {
                 week.forEach { day ->
-                    Box(modifier = Modifier.weight(1f).height(44.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.weight(1f).height(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         if (day != null) {
                             val count = countsByDay[day] ?: 0
                             val selected = day == selectedDate
                             Column(
-                                modifier = Modifier.size(38.dp).background(
-                                    color = when {
-                                        selected -> Orange
-                                        count > 0 -> Orange.copy(alpha = 0.15f)
-                                        else -> Color.Transparent
-                                    },
-                                    shape = CircleShape
-                                ).clickable { onSelectDate(day) },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = when {
+                                            selected -> Orange
+                                            count > 0 -> Orange.copy(alpha = 0.2f)
+                                            else -> Color.Transparent
+                                        }
+                                    )
+                                    .clickable { onSelectDate(day) },
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Text(day.dayOfMonth.toString(), fontSize = 14.sp,
-                                    color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = if (selected || count > 0) FontWeight.Bold else FontWeight.Normal)
-                                if (count > 0) {
-                                    Box(modifier = Modifier.size(5.dp).background(if (selected) Color.White else Orange, CircleShape))
+                                Text(
+                                    day.dayOfMonth.toString(),
+                                    fontSize = 13.sp,
+                                    color = if (selected) Color.White else TextPrimary,
+                                    fontWeight = if (selected || count > 0) FontWeight.Bold else FontWeight.Normal
+                                )
+                                if (count > 0 && !selected) {
+                                    Spacer(Modifier.height(2.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .background(Orange, CircleShape)
+                                    )
                                 }
                             }
                         }
@@ -153,24 +193,26 @@ fun ActionButton(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val shape = RoundedCornerShape(10.dp)
     if (filled) {
         Button(
             onClick = onClick,
-            modifier = modifier.shadow(4.dp, RoundedCornerShape(10.dp)),
+            modifier = modifier.height(40.dp),
             colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
-            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
-            shape = RoundedCornerShape(10.dp)
+            shape = shape,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
         ) {
-            Text(text, fontSize = 11.sp, maxLines = 1, softWrap = false)
+            Text(text, fontSize = 13.sp, maxLines = 1, softWrap = false)
         }
     } else {
         TextButton(
             onClick = onClick,
-            modifier = modifier,
+            modifier = modifier.height(40.dp),
             colors = ButtonDefaults.textButtonColors(contentColor = color),
-            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
+            shape = shape,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
         ) {
-            Text(text, fontSize = 11.sp, maxLines = 1, softWrap = false)
+            Text(text, fontSize = 13.sp, maxLines = 1, softWrap = false)
         }
     }
 }
@@ -187,40 +229,71 @@ fun ZamerCard(
     onMap: () -> Unit,
     onPlayVoice: () -> Unit
 ) {
-    // Тёмная карточка с тенью и полупрозрачным фоном
     Card(
-        modifier = Modifier.fillMaxWidth().padding(4.dp).shadow(8.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(4.dp).shadow(12.dp, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = DarkCardBg),
-        border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+        border = BorderStroke(1.dp, DarkCardBorder)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             // Цветная полоска слева (статус)
             Box(modifier = Modifier.width(6.dp).background(statusColor(z.status)))
 
             Column(modifier = Modifier.weight(1f).padding(12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     if (hasVoice) {
-                        Box(modifier = Modifier.size(26.dp).background(Orange.copy(alpha = 0.15f), CircleShape).clickable { onPlayVoice() },
-                            contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.size(26.dp).background(Orange.copy(alpha = 0.15f), CircleShape).clickable { onPlayVoice() },
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text("🎤", fontSize = 12.sp)
                         }
                         Spacer(Modifier.width(6.dp))
                     }
                     Surface(color = statusColor(z.status), shape = RoundedCornerShape(8.dp)) {
-                        Text(z.status.label, color = Color.White, fontSize = 9.sp, maxLines = 1, softWrap = false,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text(
+                            z.status.label,
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
                     }
                 }
 
-                Text(z.timeText(), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Orange, maxLines = 1, lineHeight = 20.sp)
+                Text(
+                    z.timeText(),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Orange,
+                    maxLines = 1,
+                    lineHeight = 20.sp
+                )
                 if (z.name.isNotBlank()) {
-                    Text(z.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 17.sp,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextPrimary)
+                    Text(
+                        z.name,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        lineHeight = 17.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = TextPrimary
+                    )
                 }
                 if (z.address.isNotBlank()) {
-                    Text(z.address, fontSize = 12.sp, lineHeight = 15.sp, maxLines = 2,
-                        overflow = TextOverflow.Ellipsis, color = TextSecondary)
+                    Text(
+                        z.address,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = TextSecondary
+                    )
                 }
 
                 val meta = listOf(
@@ -230,25 +303,49 @@ fun ZamerCard(
                 ).filter { it.isNotBlank() }.joinToString(" · ")
 
                 if (meta.isNotBlank()) {
-                    Text(meta, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        color = TextSecondary)
+                    Text(
+                        meta,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = TextSecondary
+                    )
                 }
 
                 if (z.price.isNotBlank()) {
-                    Text(z.price + " ₽", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 16.sp, color = TextPrimary)
+                    Text(
+                        z.price + " ₽",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        color = TextPrimary
+                    )
                 }
 
                 if (z.comment.isNotBlank()) {
-                    Text(z.comment, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        color = TextSecondary)
+                    Text(
+                        z.comment,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = TextSecondary
+                    )
                 }
 
-                Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     ActionButton("Позвонить", onCall, true, Green, Modifier.weight(1f))
                     ActionButton("Карта", onMap, false, Blue, Modifier.weight(1f))
                 }
 
-                Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     ActionButton("Перенести", onReschedule, false, Orange, Modifier.weight(1f))
                     if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
                         ActionButton("Вернуть", onReturn, true, Green, Modifier.weight(1f))
