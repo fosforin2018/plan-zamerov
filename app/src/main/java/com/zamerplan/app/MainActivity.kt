@@ -191,11 +191,12 @@ fun MainScreen(
                 Text("План замеров", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 TextButton(onClick = onOpenSettings) { Text("⚙") }
             }
+            // Новый календарь с датой
             CollapsibleCalendar(
-                month = month,
-                onMonthChange = { month = it },
                 selectedDate = selectedDate,
                 onSelectDate = { selectedDate = it },
+                month = month,
+                onMonthChange = { month = it },
                 countsByDay = counts
             )
             Text(
@@ -243,7 +244,11 @@ fun MainScreen(
             existing = z,
             recorder = recorder,
             onSave = { updated -> onUpdate(updated); editTarget = null },
-            onDismiss = { editTarget = null }
+            onDismiss = { editTarget = null },
+            onDelete = {
+                onDelete(z)
+                editTarget = null
+            }
         )
     }
     rescheduleTarget?.let { z ->
