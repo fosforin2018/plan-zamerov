@@ -30,8 +30,11 @@ class VoiceRecorder(private val ctx: Context) {
 
     fun stop() {
         try {
-            recorder?.apply { stop(); release() }
-        } catch (e: Exception) { 
+            recorder?.apply {
+                stop()
+                release()
+            }
+        } catch (e: Exception) {
             e.printStackTrace()
         }
         recorder = null
@@ -42,15 +45,14 @@ class VoiceRecorder(private val ctx: Context) {
             onComplete()
             return false
         }
-        
         try {
             stopPlayer()
             player = MediaPlayer().apply {
                 setDataSource(file.absolutePath)
-                setOnCompletionListener { 
+                setOnCompletionListener {
                     release()
                     player = null
-                    onComplete() 
+                    onComplete()
                 }
                 setOnErrorListener { mp, _, _ ->
                     mp.release()
@@ -69,16 +71,21 @@ class VoiceRecorder(private val ctx: Context) {
         }
     }
 
-    private fun stopPlayer() {
+    fun stopPlayer() {
         try {
-            player?.apply { 
-                if (isPlaying) stop()
-                release() 
+            player?.apply {
+                if (isPlaying) {
+                    stop()
+                }
+                release()
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         player = null
     }
 
     fun isRecording(): Boolean = recorder != null
+
     fun isPlaying(): Boolean = player?.isPlaying == true
 }
