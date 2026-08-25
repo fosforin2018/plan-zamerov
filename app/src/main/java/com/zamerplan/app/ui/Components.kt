@@ -7,6 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +66,6 @@ fun CollapsibleCalendar(
     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("ru"))
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-        // Блок с датой и "гармошкой"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,15 +84,12 @@ fun CollapsibleCalendar(
                     color = TextPrimary
                 )
                 Spacer(Modifier.height(4.dp))
-                // Гармошка: маленькая дуга (две линии)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(width = 24.dp, height = 8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (expanded) Orange.copy(alpha = 0.6f) else Orange)
-                    )
-                }
+                Box(
+                    Modifier
+                        .size(width = 24.dp, height = 8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (expanded) Orange.copy(alpha = 0.6f) else Orange)
+                )
             }
         }
         if (expanded) {
@@ -192,35 +196,29 @@ fun MonthCalendar(
     }
 }
 
+// Новая квадратная кнопка с иконкой (без текста)
 @Composable
-fun ActionButton(
-    text: String,
+fun ActionButtonIcon(
+    icon: ImageVector,
+    containerColor: Color,
     onClick: () -> Unit,
-    filled: Boolean,
-    color: Color,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(10.dp)
-    if (filled) {
-        Button(
-            onClick = onClick,
-            modifier = modifier.height(36.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
-            shape = shape,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-        ) {
-            Text(text, fontSize = 13.sp, maxLines = 1, softWrap = false)
-        }
-    } else {
-        TextButton(
-            onClick = onClick,
-            modifier = modifier.height(36.dp),
-            colors = ButtonDefaults.textButtonColors(contentColor = color),
-            shape = shape,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-        ) {
-            Text(text, fontSize = 13.sp, maxLines = 1, softWrap = false)
-        }
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerColor)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(32.dp)
+        )
     }
 }
 
@@ -291,17 +289,27 @@ fun ZamerCard(
                 if (z.comment.isNotBlank()) {
                     Text(z.comment, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
-                // Кнопки вертикально
-                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ActionButton("Звонок", onCall, true, Green, Modifier.fillMaxWidth())
-                    ActionButton("Карта", onMap, false, Blue, Modifier.fillMaxWidth())
-                    ActionButton("Перенос", onReschedule, false, Orange, Modifier.fillMaxWidth())
+
+                // Первая строка кнопок (Звонок, Карта, Перенос)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ActionButtonIcon(icon = Icons.Filled.Call, containerColor = Green, onClick = onCall, modifier = Modifier.weight(1f))
+                    ActionButtonIcon(icon = Icons.Filled.Place, containerColor = Blue, onClick = onMap, modifier = Modifier.weight(1f))
+                    ActionButtonIcon(icon = Icons.Filled.DateRange, containerColor = Orange, onClick = onReschedule, modifier = Modifier.weight(1f))
+                }
+                // Вторая строка (Выполнено/Вернуть, Изменить)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
-                        ActionButton("Вернуть", onReturn, true, Green, Modifier.fillMaxWidth())
+                        ActionButtonIcon(icon = Icons.Filled.Refresh, containerColor = Green, onClick = onReturn, modifier = Modifier.weight(1f))
                     } else {
-                        ActionButton("Готово", onDone, true, Green, Modifier.fillMaxWidth())
+                        ActionButtonIcon(icon = Icons.Filled.CheckCircle, containerColor = Green, onClick = onDone, modifier = Modifier.weight(1f))
                     }
-                    ActionButton("Изменить", onEdit, false, Gray, Modifier.fillMaxWidth())
+                    ActionButtonIcon(icon = Icons.Filled.Edit, containerColor = Gray, onClick = onEdit, modifier = Modifier.weight(1f))
                 }
             }
         }
