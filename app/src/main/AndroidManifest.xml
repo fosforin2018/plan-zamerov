@@ -17,37 +17,33 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PlanZamerov">
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".alarm.ReminderReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".alarm.BootReceiver"
-            android:exported="false">
+        <receiver android:name=".alarm.ReminderReceiver" android:exported="false" />
+        <receiver android:name=".alarm.BootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".widget.ZamerWidget"
-            android:exported="true">
+        <receiver android:name=".widget.ZamerWidget" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
+            <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/zamer_widget_info" />
         </receiver>
 
+        <!-- Сервис для списка виджета -->
+        <service
+            android:name=".widget.ZamerWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
+
 </manifest>
