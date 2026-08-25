@@ -34,4 +34,9 @@ class SettingsStore(ctx: Context) {
     var customReminderTime: String
         get() = prefs.getString("custom_reminder_time", "") ?: ""
         set(value) = prefs.edit().putString("custom_reminder_time", value).apply()
+
+    // Список источников "От кого"
+    var sources: Set<String>
+        get() = prefs.getStringSet("sources", emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet("sources", value).apply()
 }
