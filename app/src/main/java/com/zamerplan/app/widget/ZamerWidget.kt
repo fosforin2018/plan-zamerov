@@ -13,124 +13,58 @@ import android.widget.RemoteViews
 import com.zamerplan.app.MainActivity
 import com.zamerplan.app.R
 import com.zamerplan.app.model.Storage
-import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 class ZamerWidget : AppWidgetProvider() {
 
-    override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
-        ids.forEach { update(ctx, mgr, it) }
-    }
-
-    private fun statusColor(s: ZamerStatus): Int = when (s) {
-        ZamerStatus.PLANNED -> 0xFFF4511E.toInt()
-        ZamerStatus.DONE -> 0xFF43A047.toInt()
-        ZamerStatus.POSTPONED -> 0xFF9E9E9E.toInt()
-        ZamerStatus.CANCELLED -> 0xFFE53935.toInt()
-    }
-
-    private fun update(ctx: Context, mgr: AppWidgetManager, id: Int) {
-        try {
-            val rv = RemoteViews(ctx.packageName, R.layout.zamer_widget)
-
-            val all = Storage(ctx).load()
-            val today = LocalDate.now()
-
-            // Исправление дублей: futureItems только date > today
-            val todayItems = all.filter { it.date == today }.sortedBy { it.time }
-            val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
-                .sortedWith(compareBy({ it.date }, { it.time }))
-            val list = (todayItems + futureItems).take(4)
-
-            rv.setOnClickPendingIntent(R.id.w_root, PendingIntent.getActivity(
-                ctx, 0, Intent(ctx, MainActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            ))
-
-            if (list.isEmpty()) {
-                rv.setViewVisibility(R.id.w_empty, View.VISIBLE)
-                rv.setViewVisibility(R.id.card_1, View.GONE)
-                rv.setViewVisibility(R.id.card_2, View.GONE)
-                rv.setViewVisibility(R.id.card_3, View.GONE)
-                rv.setViewVisibility(R.id.card_4, View.GONE)
-                rv.setTextViewText(R.id.w_title, "📏 План замеров")
-            } else {
-                rv.setViewVisibility(R.id.w_empty, View.GONE)
-                rv.setTextViewText(R.id.w_title, "📏 План замеров · ${list.size} шт.")
-
-                if (list.size > 0) {
-                    rv.setViewVisibility(R.id.card_1, View.VISIBLE)
-                    fillCard(rv, ctx, list[0], R.id.card_1, R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map, statusColor(list[0].status))
-                } else rv.setViewVisibility(R.id.card_1, View.GONE)
-
-                if (list.size > 1) {
-                    rv.setViewVisibility(R.id.card_2, View.VISIBLE)
-                    fillCard(rv, ctx, list[1], R.id.card_2, R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map, statusColor(list[1].status))
-                } else rv.setViewVisibility(R.id.card_2, View.GONE)
-
-                if (list.size > 2) {
-                    rv.setViewVisibility(R.id.card_3, View.VISIBLE)
-                    fillCard(rv, ctx, list[2], R.id.card_3, R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map, statusColor(list[2].status))
-                } else rv.setViewVisibility(R.id.card_3, View.GONE)
-
-                if (list.size > 3) {
-                    rv.setViewVisibility(R.id.card_4, View.VISIBLE)
-                    fillCard(rv, ctx, list[3], R.id.card_4, R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_call, R.id.t4_map, statusColor(list[3].status))
-                } else rv.setViewVisibility(R.id.card_4, View.GONE)
-            }
-
-            mgr.updateAppWidget(id, rv)
-        } catch (e: Exception) {
-            Log.e("ZamerWidget", "Ошибка обновления виджета", e)
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        for (widgetId in appWidgetIds) {
+            updateWidget(context, appWidgetManager, widgetId)
         }
     }
 
-    private fun fillCard(
-        rv: RemoteViews, ctx: Context, z: Zamer,
-        cardId: Int, timeId: Int, nameId: Int, addrId: Int, callId: Int, mapId: Int,
-        color: Int
-    ) {
-        rv.setTextViewText(timeId, z.timeText())
-        if (z.name.isNotBlank()) {
-            rv.setTextViewText(nameId, z.name)
-            rv.setViewVisibility(nameId, View.VISIBLE)
-        } else rv.setViewVisibility(nameId, View.GONE)
-        if (z.address.isNotBlank()) {
-            rv.setTextViewText(addrId, z.address)
-            rv.setViewVisibility(addrId, View.VISIBLE)
-        } else rv.setViewVisibility(addrId, View.GONE)
+    private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
+        val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
 
-        val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
-        if (tel.isNotEmpty()) {
-            rv.setOnClickPendingIntent(callId, PendingIntent.getActivity(
-                ctx, z.id.toInt(), Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            ))
-            rv.setViewVisibility(callId, View.VISIBLE)
-        } else rv.setViewVisibility(callId, View.GONE)
+        // Заголовок
+        val all = Storage(context).load()
+        val today = LocalDate.now()
+        val count = all.filter { it.status == ZamerStatus.PLANNED && it.date >= today }.size
+        rv.setTextViewText(R.id.w_title, "План замеров · $count шт.")
 
-        if (z.address.isNotBlank()) {
-            rv.setOnClickPendingIntent(mapId, PendingIntent.getActivity(
-                ctx, z.id.toInt() + 1000, Intent(Intent.ACTION_VIEW,
-                    Uri.parse("https://yandex.ru/maps/?text=" + Uri.encode(z.address)))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            ))
-            rv.setViewVisibility(mapId, View.VISIBLE)
-        } else rv.setViewVisibility(mapId, View.GONE)
+        if (count == 0) {
+            rv.setViewVisibility(R.id.widget_list, View.GONE)
+            rv.setViewVisibility(R.id.w_empty, View.VISIBLE)
+        } else {
+            rv.setViewVisibility(R.id.widget_list, View.VISIBLE)
+            rv.setViewVisibility(R.id.w_empty, View.GONE)
+
+            val intent = Intent(context, ZamerWidgetService::class.java).apply {
+                data = Uri.parse("zamerwidget://$widgetId")
+            }
+            rv.setRemoteAdapter(R.id.widget_list, intent)
+        }
+
+        // Клик по корню открывает приложение
+        val openAppIntent = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        rv.setOnClickPendingIntent(R.id.w_root, openAppIntent)
+
+        appWidgetManager.updateAppWidget(widgetId, rv)
     }
 
     companion object {
-        fun refreshAll(ctx: Context) {
+        fun refreshAll(context: Context) {
             try {
-                val mgr = AppWidgetManager.getInstance(ctx)
-                val ids = mgr.getAppWidgetIds(ComponentName(ctx, ZamerWidget::class.java))
+                val mgr = AppWidgetManager.getInstance(context)
+                val ids = mgr.getAppWidgetIds(ComponentName(context, ZamerWidget::class.java))
                 if (ids.isEmpty()) return
-                ids.forEach { id -> ZamerWidget().update(ctx, mgr, id) }
+                ids.forEach { id -> ZamerWidget().updateWidget(context, mgr, id) }
             } catch (e: Exception) {
                 Log.e("ZamerWidget", "Ошибка refreshAll", e)
             }
