@@ -48,38 +48,49 @@ fun statusColor(s: ZamerStatus): Color = when (s) {
 
 @Composable
 fun CollapsibleCalendar(
-    month: YearMonth,
-    onMonthChange: (YearMonth) -> Unit,
     selectedDate: LocalDate,
     onSelectDate: (LocalDate) -> Unit,
+    month: YearMonth,
+    onMonthChange: (YearMonth) -> Unit,
     countsByDay: Map<LocalDate, Int>
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CalendarBg),
-        border = BorderStroke(1.dp, CalendarBorder)
-    ) {
-        Column(modifier = Modifier.animateContentSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("ru"))
+
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+        // Блок с датой и "гармошкой"
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(CalendarBg)
+                .clickable { expanded = !expanded }
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Календарь",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
+                    text = selectedDate.format(dateFormatter),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
-                Text(if (expanded) "▲" else "▼", color = Orange, fontSize = 14.sp)
+                Spacer(Modifier.height(4.dp))
+                // Гармошка: маленькая дуга (две линии)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(width = 24.dp, height = 8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (expanded) Orange.copy(alpha = 0.6f) else Orange)
+                    )
+                }
             }
-            if (expanded) {
-                MonthCalendar(month, onMonthChange, selectedDate, onSelectDate, countsByDay)
-                Spacer(Modifier.height(8.dp))
-            }
+        }
+        if (expanded) {
+            Spacer(Modifier.height(8.dp))
+            MonthCalendar(month, onMonthChange, selectedDate, onSelectDate, countsByDay)
         }
     }
 }
@@ -92,83 +103,85 @@ fun MonthCalendar(
     onSelectDate: (LocalDate) -> Unit,
     countsByDay: Map<LocalDate, Int>
 ) {
-    val ru = java.util.Locale.forLanguageTag("ru")
+    val ru = Locale.forLanguageTag("ru")
     val title = DateTimeFormatter.ofPattern("LLLL yyyy", ru).format(month.atDay(1))
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(ru) else it.toString() }
 
-    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = { onMonthChange(month.minusMonths(1)) }) { Text("‹", color = Orange) }
-            Text(
-                text = title,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = TextPrimary
-            )
-            TextButton(onClick = { onMonthChange(month.plusMonths(1)) }) { Text("›", color = Orange) }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-            listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { d ->
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CalendarBg),
+        border = BorderStroke(1.dp, CalendarBorder)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = { onMonthChange(month.minusMonths(1)) }) { Text("‹", color = Orange) }
                 Text(
-                    d,
+                    text = title,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    fontSize = 11.sp,
-                    color = TextSecondary
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = TextPrimary
                 )
+                TextButton(onClick = { onMonthChange(month.plusMonths(1)) }) { Text("›", color = Orange) }
             }
-        }
-
-        val offset = month.atDay(1).dayOfWeek.value - 1
-        val cells = mutableListOf<LocalDate?>()
-        repeat(offset) { cells.add(null) }
-        for (d in 1..month.lengthOfMonth()) cells.add(month.atDay(d))
-        while (cells.size % 7 != 0) cells.add(null)
-
-        cells.chunked(7).forEach { week ->
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) {
-                week.forEach { day ->
-                    Box(
-                        modifier = Modifier.weight(1f).height(40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (day != null) {
-                            val count = countsByDay[day] ?: 0
-                            val selected = day == selectedDate
-                            Column(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = when {
-                                            selected -> Orange
-                                            count > 0 -> Orange.copy(alpha = 0.2f)
-                                            else -> Color.Transparent
-                                        }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { d ->
+                    Text(
+                        d,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 11.sp,
+                        color = TextSecondary
+                    )
+                }
+            }
+            val offset = month.atDay(1).dayOfWeek.value - 1
+            val cells = mutableListOf<LocalDate?>()
+            repeat(offset) { cells.add(null) }
+            for (d in 1..month.lengthOfMonth()) cells.add(month.atDay(d))
+            while (cells.size % 7 != 0) cells.add(null)
+            cells.chunked(7).forEach { week ->
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp)) {
+                    week.forEach { day ->
+                        Box(
+                            modifier = Modifier.weight(1f).height(36.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (day != null) {
+                                val count = countsByDay[day] ?: 0
+                                val selected = day == selectedDate
+                                Column(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            color = when {
+                                                selected -> Orange
+                                                count > 0 -> Orange.copy(alpha = 0.2f)
+                                                else -> Color.Transparent
+                                            }
+                                        )
+                                        .clickable { onSelectDate(day) },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        day.dayOfMonth.toString(),
+                                        fontSize = 13.sp,
+                                        color = if (selected) Color.White else TextPrimary,
+                                        fontWeight = if (selected || count > 0) FontWeight.Bold else FontWeight.Normal
                                     )
-                                    .clickable { onSelectDate(day) },
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    day.dayOfMonth.toString(),
-                                    fontSize = 13.sp,
-                                    color = if (selected) Color.White else TextPrimary,
-                                    fontWeight = if (selected || count > 0) FontWeight.Bold else FontWeight.Normal
-                                )
-                                if (count > 0 && !selected) {
-                                    Spacer(Modifier.height(2.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(4.dp)
-                                            .background(Orange, CircleShape)
-                                    )
+                                    if (count > 0 && !selected) {
+                                        Spacer(Modifier.height(2.dp))
+                                        Box(
+                                            modifier = Modifier.size(4.dp).background(Orange, CircleShape)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -191,7 +204,7 @@ fun ActionButton(
     if (filled) {
         Button(
             onClick = onClick,
-            modifier = modifier.height(40.dp),
+            modifier = modifier.height(36.dp),
             colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
             shape = shape,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
@@ -201,7 +214,7 @@ fun ActionButton(
     } else {
         TextButton(
             onClick = onClick,
-            modifier = modifier.height(40.dp),
+            modifier = modifier.height(36.dp),
             colors = ButtonDefaults.textButtonColors(contentColor = color),
             shape = shape,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
@@ -231,7 +244,6 @@ fun ZamerCard(
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.width(6.dp).background(statusColor(z.status)))
-
             Column(modifier = Modifier.weight(1f).padding(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -240,12 +252,12 @@ fun ZamerCard(
                 ) {
                     if (hasVoice) {
                         Box(
-                            modifier = Modifier.size(26.dp).background(Orange.copy(alpha = 0.15f), CircleShape).clickable { onPlayVoice() },
+                            modifier = Modifier.size(32.dp).background(Orange.copy(alpha = 0.3f), CircleShape).clickable { onPlayVoice() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("🎤", fontSize = 12.sp)
+                            Text("🎤", fontSize = 16.sp)
                         }
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                     }
                     Surface(color = statusColor(z.status), shape = RoundedCornerShape(8.dp)) {
                         Text(
@@ -258,97 +270,38 @@ fun ZamerCard(
                         )
                     }
                 }
-
-                Text(
-                    z.timeText(),
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Orange,
-                    maxLines = 1,
-                    lineHeight = 20.sp
-                )
+                Text(z.timeText(), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Orange, maxLines = 1, lineHeight = 20.sp)
                 if (z.name.isNotBlank()) {
-                    Text(
-                        z.name,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        lineHeight = 17.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = TextPrimary
-                    )
+                    Text(z.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextPrimary)
                 }
                 if (z.address.isNotBlank()) {
-                    Text(
-                        z.address,
-                        fontSize = 12.sp,
-                        lineHeight = 15.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = TextSecondary
-                    )
+                    Text(z.address, fontSize = 12.sp, lineHeight = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
-
                 val meta = listOf(
                     if (z.contactFrom.isNotBlank()) "От: " + z.contactFrom else "",
                     z.area,
                     z.thickness
                 ).filter { it.isNotBlank() }.joinToString(" · ")
-
                 if (meta.isNotBlank()) {
-                    Text(
-                        meta,
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = TextSecondary
-                    )
+                    Text(meta, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
-
                 if (z.price.isNotBlank()) {
-                    Text(
-                        z.price + " ₽",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        lineHeight = 16.sp,
-                        color = TextPrimary
-                    )
+                    Text(z.price + " ₽", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 16.sp, color = TextPrimary)
                 }
-
                 if (z.comment.isNotBlank()) {
-                    Text(
-                        z.comment,
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = TextSecondary
-                    )
+                    Text(z.comment, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
-
-                Row(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ActionButton("Позвонить", onCall, true, Green, Modifier.weight(1f))
-                    ActionButton("Карта", onMap, false, Blue, Modifier.weight(1f))
-                }
-
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ActionButton("Перенести", onReschedule, false, Orange, Modifier.weight(1f))
+                // Кнопки вертикально
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ActionButton("Звонок", onCall, true, Green, Modifier.fillMaxWidth())
+                    ActionButton("Карта", onMap, false, Blue, Modifier.fillMaxWidth())
+                    ActionButton("Перенос", onReschedule, false, Orange, Modifier.fillMaxWidth())
                     if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
-                        ActionButton("Вернуть", onReturn, true, Green, Modifier.weight(1f))
+                        ActionButton("Вернуть", onReturn, true, Green, Modifier.fillMaxWidth())
                     } else {
-                        ActionButton("Выполнено", onDone, true, Green, Modifier.weight(1f))
+                        ActionButton("Готово", onDone, true, Green, Modifier.fillMaxWidth())
                     }
-                }
-
-                Row(modifier = Modifier.padding(top = 4.dp)) {
-                    ActionButton("Изменить", onEdit, false, Gray, Modifier.weight(1f))
+                    ActionButton("Изменить", onEdit, false, Gray, Modifier.fillMaxWidth())
                 }
             }
         }
