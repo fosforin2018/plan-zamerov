@@ -32,6 +32,6 @@ class SettingsStore(ctx: Context) {
 
     // Новое поле для кастомного времени (например, "08:30")
     var customReminderTime: String
-        get() = prefs.getString("custom_reminder_time", "")
+        get() = prefs.getString("custom_reminder_time", "") ?: ""
         set(value) = prefs.edit().putString("custom_reminder_time", value).apply()
 }
