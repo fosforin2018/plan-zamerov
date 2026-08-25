@@ -134,6 +134,7 @@ fun MainScreen(
     var showForm by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Zamer?>(null) }
     var rescheduleTarget by remember { mutableStateOf<Zamer?>(null) }
+    val sources = settings.sources.toList() // список источников "От кого"
 
     val context = LocalContext.current
 
@@ -235,7 +236,8 @@ fun MainScreen(
             initialDate = selectedDate,
             recorder = recorder,
             onSave = { z -> onSave(z); showForm = false },
-            onDismiss = { showForm = false }
+            onDismiss = { showForm = false },
+            sources = sources
         )
     }
     editTarget?.let { z ->
@@ -245,10 +247,8 @@ fun MainScreen(
             recorder = recorder,
             onSave = { updated -> onUpdate(updated); editTarget = null },
             onDismiss = { editTarget = null },
-            onDelete = {
-                onDelete(z)
-                editTarget = null
-            }
+            onDelete = { onDelete(z); editTarget = null },
+            sources = sources
         )
     }
     rescheduleTarget?.let { z ->
