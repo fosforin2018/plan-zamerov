@@ -5,31 +5,13 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -58,7 +40,8 @@ fun ZamerFormDialog(
     existing: Zamer? = null,
     recorder: VoiceRecorder,
     onSave: (Zamer) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     val ctx = LocalContext.current
     var date by remember { mutableStateOf(existing?.date ?: initialDate) }
@@ -99,19 +82,12 @@ fun ZamerFormDialog(
         ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) startRec() }
 
-    val dateState = rememberDatePickerState(
-        date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-    )
-    val timeState = rememberTimePickerState(
-        initialHour = time.hour, initialMinute = time.minute, is24Hour = true
-    )
+    val dateState = rememberDatePickerState(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
+    val timeState = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute, is24Hour = true)
     val timeEndState = rememberTimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
 
     AlertDialog(
-        onDismissRequest = {
-            if (isRecording) stopRec()
-            onDismiss()
-        },
+        onDismissRequest = { if (isRecording) stopRec(); onDismiss() },
         title = { Text(if (existing != null) "Редактировать замер" else "Новый замер") },
         text = {
             Column(
@@ -126,8 +102,7 @@ fun ZamerFormDialog(
                         Text(time.format(T), fontSize = 13.sp, maxLines = 1, softWrap = false)
                     }
                     TextButton(onClick = { showTimeEnd = true }, modifier = Modifier.weight(1f)) {
-                        Text(if (timeEnd.isBlank()) "Конец: —" else "до " + timeEnd,
-                            fontSize = 13.sp, maxLines = 1, softWrap = false)
+                        Text(if (timeEnd.isBlank()) "Конец: —" else "до " + timeEnd, fontSize = 13.sp, maxLines = 1, softWrap = false)
                     }
                 }
                 if (existing != null) {
@@ -136,67 +111,43 @@ fun ZamerFormDialog(
                             val selected = s == status
                             TextButton(
                                 onClick = { status = s },
-                                modifier = Modifier.weight(1f)
-                                    .background(if (selected) statusColor(s) else Color.Transparent,
-                                        RoundedCornerShape(8.dp)),
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = if (selected) Color.White else statusColor(s)),
+                                modifier = Modifier.weight(1f).background(if (selected) statusColor(s) else Color.Transparent, RoundedCornerShape(8.dp)),
+                                colors = ButtonDefaults.textButtonColors(contentColor = if (selected) Color.White else statusColor(s)),
                                 contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp)
                             ) { Text(s.label, fontSize = 9.sp, maxLines = 1, softWrap = false) }
                         }
                     }
                 }
-                OutlinedTextField(contactFrom, { contactFrom = it },
-                    label = { Text("От кого контакт") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(name, { name = it },
-                    label = { Text("Имя клиента") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(phone, { phone = it },
-                    label = { Text("Телефон") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(address, { address = it },
-                    label = { Text("Объект / адрес") }, modifier = Modifier.fillMaxWidth(),
-                    minLines = 1, maxLines = 3)
-                OutlinedTextField(area, { area = it },
-                    label = { Text("Площадь, м²") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(thickness, { thickness = it },
-                    label = { Text("Толщина стяжки, см") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(price, { price = it },
-                    label = { Text("Цена, ₽") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(comment, { comment = it },
-                    label = { Text("Комментарий (лифт, паркинг и т.д.)") },
-                    modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 4)
-
-                Text("🎤 Голосовая напоминалка (себе)", fontSize = 12.sp,
-                    color = Orange, fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(contactFrom, { contactFrom = it }, label = { Text("От кого контакт") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(name, { name = it }, label = { Text("Имя клиента") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(phone, { phone = it }, label = { Text("Телефон") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(address, { address = it }, label = { Text("Объект / адрес") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 3)
+                OutlinedTextField(area, { area = it }, label = { Text("Площадь, м²") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(thickness, { thickness = it }, label = { Text("Толщина стяжки, см") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(price, { price = it }, label = { Text("Цена, ₽") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(comment, { comment = it }, label = { Text("Комментарий (лифт, паркинг и т.д.)") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 4)
+                Text("🎤 Голосовая напоминалка (себе)", fontSize = 12.sp, color = Orange, fontWeight = FontWeight.SemiBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (isRecording) {
                         TextButton(
                             onClick = { stopRec() },
-                            modifier = Modifier.weight(1f)
-                                .background(Red.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
+                            modifier = Modifier.weight(1f).background(Red.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
                             colors = ButtonDefaults.textButtonColors(contentColor = Red)
                         ) { Text("🔴 Идет запись... Стоп", maxLines = 1, softWrap = false) }
                     } else {
                         TextButton(
                             onClick = {
-                                val granted = ContextCompat.checkSelfPermission(
-                                    ctx, Manifest.permission.RECORD_AUDIO
-                                ) == PackageManager.PERMISSION_GRANTED
-                                if (granted) startRec()
-                                else permLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                                if (granted) startRec() else permLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             },
                             modifier = Modifier.weight(1f)
                         ) { Text("🎤 Записать голос", maxLines = 1, softWrap = false) }
                     }
                     if (hasVoice && !isRecording) {
                         TextButton(
-                            onClick = {
-                                voicePlaying = true
-                                val ok = recorder.play(voiceFile) { voicePlaying = false }
-                                if (!ok) voicePlaying = false
-                            },
+                            onClick = { voicePlaying = true; val ok = recorder.play(voiceFile) { voicePlaying = false }; if (!ok) voicePlaying = false },
                             modifier = Modifier.weight(1f)
-                        ) { Text(if (voicePlaying) "⏹ Играет" else "▶ Слушать",
-                            maxLines = 1, softWrap = false) }
+                        ) { Text(if (voicePlaying) "⏹ Играет" else "▶ Слушать", maxLines = 1, softWrap = false) }
                         TextButton(
                             onClick = { voiceFile.delete(); hasVoice = false },
                             colors = ButtonDefaults.textButtonColors(contentColor = Red),
@@ -205,17 +156,12 @@ fun ZamerFormDialog(
                     }
                 }
                 if (isRecording) {
-                    Text("🔴 Говорите... Нажмите «Стоп», когда закончите",
-                        fontSize = 11.sp, color = Red, fontWeight = FontWeight.SemiBold)
+                    Text("🔴 Говорите... Нажмите «Стоп», когда закончите", fontSize = 11.sp, color = Red, fontWeight = FontWeight.SemiBold)
                 }
                 if (hasVoice && !isRecording) {
-                    Text("💡 Голос прозвучит в напоминании ПЕРЕД мелодией",
-                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("💡 Голос прозвучит в напоминании ПЕРЕД мелодией", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-
-                OutlinedTextField(rawText, { rawText = it },
-                    label = { Text("Вставьте текст сообщения (WhatsApp/Telegram)") },
-                    modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 6)
+                OutlinedTextField(rawText, { rawText = it }, label = { Text("Вставьте текст сообщения (WhatsApp/Telegram)") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 6)
                 TextButton(onClick = {
                     val p = ZamerParser.parse(rawText)
                     if (p.phone.isNotBlank()) phone = p.phone
@@ -227,44 +173,40 @@ fun ZamerFormDialog(
                     if (p.name.isNotBlank()) name = p.name
                     if (p.price.isNotBlank()) price = p.price
                     p.dateOffset?.let { off -> date = LocalDate.now().plusDays(off.toLong()) }
-                    if (p.timeStr.isNotBlank()) {
-                        try { time = LocalTime.parse(p.timeStr) } catch (e: Exception) { }
-                    }
+                    if (p.timeStr.isNotBlank()) { try { time = LocalTime.parse(p.timeStr) } catch (e: Exception) { } }
                 }) { Text("🧠 Разобрать текст и заполнить поля", color = Orange) }
+
+                // Кнопка удаления (если есть onDelete и existing != null)
+                if (existing != null && onDelete != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { if (isRecording) stopRec(); onDelete() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Red),
+                        shape = RoundedCornerShape(10.dp)
+                    ) { Text("Удалить замер", color = Color.White) }
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 if (isRecording) stopRec()
                 val voiceFileFinal = if (voiceFile.exists() && voiceFile.length() > 0L) voiceFile.name else ""
-                onSave(
-                    Zamer(
-                        id = id,
-                        date = date, time = time, timeEnd = timeEnd.trim(),
-                        name = name.trim(), phone = phone.trim(),
-                        contactFrom = contactFrom.trim(), address = address.trim(),
-                        area = area.trim(), thickness = thickness.trim(),
-                        price = price.trim(), comment = comment.trim(),
-                        voiceFile = voiceFileFinal,
-                        status = status
-                    )
-                )
+                onSave(Zamer(id = id, date = date, time = time, timeEnd = timeEnd.trim(), name = name.trim(), phone = phone.trim(), contactFrom = contactFrom.trim(), address = address.trim(), area = area.trim(), thickness = thickness.trim(), price = price.trim(), comment = comment.trim(), voiceFile = voiceFileFinal, status = status))
             }) { Text("Сохранить") }
         },
-        dismissButton = { TextButton(onClick = {
-            if (isRecording) stopRec()
-            onDismiss()
-        }) { Text("Отмена") } }
+        dismissButton = {
+            TextButton(onClick = { if (isRecording) stopRec(); onDismiss() }) { Text("Отмена") }
+        }
     )
 
+    // Дальше идут DatePickerDialog и TimePicker (как раньше)
     if (showDate) {
         DatePickerDialog(
             onDismissRequest = { showDate = false },
             confirmButton = {
                 TextButton(onClick = {
-                    dateState.selectedDateMillis?.let { ms ->
-                        date = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()
-                    }
+                    dateState.selectedDateMillis?.let { ms -> date = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate() }
                     showDate = false
                 }) { Text("ОК") }
             }
@@ -274,10 +216,7 @@ fun ZamerFormDialog(
         AlertDialog(
             onDismissRequest = { showTime = false },
             confirmButton = {
-                TextButton(onClick = {
-                    time = LocalTime.of(timeState.hour, timeState.minute)
-                    showTime = false
-                }) { Text("ОК") }
+                TextButton(onClick = { time = LocalTime.of(timeState.hour, timeState.minute); showTime = false }) { Text("ОК") }
             },
             dismissButton = { TextButton(onClick = { showTime = false }) { Text("Отмена") } },
             text = { TimePicker(state = timeState) }
@@ -287,14 +226,9 @@ fun ZamerFormDialog(
         AlertDialog(
             onDismissRequest = { showTimeEnd = false },
             confirmButton = {
-                TextButton(onClick = {
-                    timeEnd = LocalTime.of(timeEndState.hour, timeEndState.minute).format(T)
-                    showTimeEnd = false
-                }) { Text("ОК") }
+                TextButton(onClick = { timeEnd = LocalTime.of(timeEndState.hour, timeEndState.minute).format(T); showTimeEnd = false }) { Text("ОК") }
             },
-            dismissButton = {
-                TextButton(onClick = { timeEnd = ""; showTimeEnd = false }) { Text("Сбросить") }
-            },
+            dismissButton = { TextButton(onClick = { timeEnd = ""; showTimeEnd = false }) { Text("Сбросить") } },
             text = { TimePicker(state = timeEndState) }
         )
     }
@@ -315,12 +249,9 @@ fun RescheduleDialog(
         title = { Text("Перенести замер") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = { onMove(LocalDate.now().plusDays(1)) },
-                    modifier = Modifier.fillMaxWidth()) { Text("На завтра") }
-                TextButton(onClick = { onMove(LocalDate.now().plusDays(2)) },
-                    modifier = Modifier.fillMaxWidth()) { Text("На послезавтра") }
-                TextButton(onClick = { showPicker = true },
-                    modifier = Modifier.fillMaxWidth()) { Text("Выбрать дату") }
+                TextButton(onClick = { onMove(LocalDate.now().plusDays(1)) }, modifier = Modifier.fillMaxWidth()) { Text("На завтра") }
+                TextButton(onClick = { onMove(LocalDate.now().plusDays(2)) }, modifier = Modifier.fillMaxWidth()) { Text("На послезавтра") }
+                TextButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) { Text("Выбрать дату") }
                 TextButton(
                     onClick = { if (confirmCancel) onCancelZamer() else confirmCancel = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -335,9 +266,7 @@ fun RescheduleDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { ms ->
-                        onMove(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate())
-                    }
+                    pickerState.selectedDateMillis?.let { ms -> onMove(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()) }
                     showPicker = false
                 }) { Text("ОК") }
             }
