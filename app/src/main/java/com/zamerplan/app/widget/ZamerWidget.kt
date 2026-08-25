@@ -44,6 +44,9 @@ class ZamerWidget : AppWidgetProvider() {
                 data = Uri.parse("zamerwidget://$widgetId")
             }
             rv.setRemoteAdapter(R.id.widget_list, intent)
+
+            // ВАЖНО: принудительно обновляем список
+            appWidgetManager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_list)
         }
 
         // Клик по корню открывает приложение
