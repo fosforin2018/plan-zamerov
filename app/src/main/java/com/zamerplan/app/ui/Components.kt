@@ -195,7 +195,7 @@ fun MonthCalendar(
     }
 }
 
-// Квадратная кнопка с иконкой, фиксированный размер 56dp
+// Квадратная кнопка с иконкой, размер 44dp
 @Composable
 fun ActionButtonIcon(
     icon: ImageVector,
@@ -205,18 +205,18 @@ fun ActionButtonIcon(
 ) {
     Box(
         modifier = modifier
-            .size(56.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .size(44.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(containerColor)
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = Color.White,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(28.dp)
         )
     }
 }
@@ -289,20 +289,20 @@ fun ZamerCard(
                     Text(z.comment, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
 
-                // Первая строка: Звонок, Карта, Перенос (по центру, фиксированный размер)
+                // Первая строка: Звонок, Карта, Перенос (по центру, 44dp)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                 ) {
                     ActionButtonIcon(icon = Icons.Filled.Call, containerColor = Green, onClick = onCall)
                     ActionButtonIcon(icon = Icons.Filled.Place, containerColor = Blue, onClick = onMap)
                     ActionButtonIcon(icon = Icons.Filled.DateRange, containerColor = Orange, onClick = onReschedule)
                 }
 
-                // Вторая строка: Выполнено/Вернуть, Изменить (по центру, фиксированный размер)
+                // Вторая строка: Выполнено/Вернуть, Изменить (по центру, 44dp)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                 ) {
                     if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
                         ActionButtonIcon(icon = Icons.Filled.Refresh, containerColor = Green, onClick = onReturn)
