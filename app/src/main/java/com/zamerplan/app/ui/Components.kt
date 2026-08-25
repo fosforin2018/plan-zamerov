@@ -195,7 +195,7 @@ fun MonthCalendar(
     }
 }
 
-// Квадратная кнопка с иконкой, размер 44dp
+// Квадратная кнопка с иконкой, размер 34dp
 @Composable
 fun ActionButtonIcon(
     icon: ImageVector,
@@ -205,18 +205,18 @@ fun ActionButtonIcon(
 ) {
     Box(
         modifier = modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .size(34.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(containerColor)
             .clickable(onClick = onClick)
-            .padding(8.dp),
+            .padding(6.dp),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = Color.White,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -249,12 +249,12 @@ fun ZamerCard(
                 ) {
                     if (hasVoice) {
                         Box(
-                            modifier = Modifier.size(32.dp).background(Orange.copy(alpha = 0.3f), CircleShape).clickable { onPlayVoice() },
+                            modifier = Modifier.size(28.dp).background(Orange.copy(alpha = 0.3f), CircleShape).clickable { onPlayVoice() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("🎤", fontSize = 16.sp)
+                            Text("🎤", fontSize = 14.sp)
                         }
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                     }
                     Surface(color = statusColor(z.status), shape = RoundedCornerShape(8.dp)) {
                         Text(
@@ -289,20 +289,20 @@ fun ZamerCard(
                     Text(z.comment, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
 
-                // Первая строка: Звонок, Карта, Перенос (по центру, 44dp)
+                // Первая строка: Звонок, Карта, Перенос (по центру, 34dp)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
                 ) {
                     ActionButtonIcon(icon = Icons.Filled.Call, containerColor = Green, onClick = onCall)
                     ActionButtonIcon(icon = Icons.Filled.Place, containerColor = Blue, onClick = onMap)
                     ActionButtonIcon(icon = Icons.Filled.DateRange, containerColor = Orange, onClick = onReschedule)
                 }
 
-                // Вторая строка: Выполнено/Вернуть, Изменить (по центру, 44dp)
+                // Вторая строка: Выполнено/Вернуть, Изменить (по центру, 34dp)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
                 ) {
                     if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
                         ActionButtonIcon(icon = Icons.Filled.Refresh, containerColor = Green, onClick = onReturn)
