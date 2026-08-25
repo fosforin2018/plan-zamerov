@@ -1,6 +1,5 @@
 package com.zamerplan.app.ui
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,10 +8,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.model.Zamer
@@ -196,7 +194,7 @@ fun MonthCalendar(
     }
 }
 
-// Новая квадратная кнопка с иконкой (без текста)
+// Квадратная кнопка с иконкой, фиксированный размер 56dp
 @Composable
 fun ActionButtonIcon(
     icon: ImageVector,
@@ -290,26 +288,27 @@ fun ZamerCard(
                     Text(z.comment, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = TextSecondary)
                 }
 
-                // Первая строка кнопок (Звонок, Карта, Перенос)
+                // Первая строка: Звонок, Карта, Перенос (по центру, фиксированный размер)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
                 ) {
-                    ActionButtonIcon(icon = Icons.Filled.Call, containerColor = Green, onClick = onCall, modifier = Modifier.weight(1f))
-                    ActionButtonIcon(icon = Icons.Filled.Place, containerColor = Blue, onClick = onMap, modifier = Modifier.weight(1f))
-                    ActionButtonIcon(icon = Icons.Filled.DateRange, containerColor = Orange, onClick = onReschedule, modifier = Modifier.weight(1f))
+                    ActionButtonIcon(icon = Icons.Filled.Call, containerColor = Green, onClick = onCall)
+                    ActionButtonIcon(icon = Icons.Filled.Place, containerColor = Blue, onClick = onMap)
+                    ActionButtonIcon(icon = Icons.Filled.DateRange, containerColor = Orange, onClick = onReschedule)
                 }
-                // Вторая строка (Выполнено/Вернуть, Изменить)
+
+                // Вторая строка: Выполнено/Вернуть, Изменить (по центру, фиксированный размер)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
                 ) {
                     if (z.status == ZamerStatus.DONE || z.status == ZamerStatus.CANCELLED) {
-                        ActionButtonIcon(icon = Icons.Filled.Refresh, containerColor = Green, onClick = onReturn, modifier = Modifier.weight(1f))
+                        ActionButtonIcon(icon = Icons.Filled.Refresh, containerColor = Green, onClick = onReturn)
                     } else {
-                        ActionButtonIcon(icon = Icons.Filled.CheckCircle, containerColor = Green, onClick = onDone, modifier = Modifier.weight(1f))
+                        ActionButtonIcon(icon = Icons.Filled.CheckCircle, containerColor = Green, onClick = onDone)
                     }
-                    ActionButtonIcon(icon = Icons.Filled.Edit, containerColor = Gray, onClick = onEdit, modifier = Modifier.weight(1f))
+                    ActionButtonIcon(icon = Icons.Filled.Edit, containerColor = Gray, onClick = onEdit)
                 }
             }
         }
