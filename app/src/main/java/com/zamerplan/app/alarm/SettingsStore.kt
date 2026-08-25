@@ -29,4 +29,9 @@ class SettingsStore(ctx: Context) {
     var themeMode: String
         get() = prefs.getString("theme", "system") ?: "system"
         set(value) = prefs.edit().putString("theme", value).apply()
+
+    // Новое поле для кастомного времени (например, "08:30")
+    var customReminderTime: String
+        get() = prefs.getString("custom_reminder_time", "")
+        set(value) = prefs.edit().putString("custom_reminder_time", value).apply()
 }
