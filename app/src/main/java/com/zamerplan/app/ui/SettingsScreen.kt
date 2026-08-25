@@ -7,8 +7,10 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +31,7 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
     var b2h by remember { mutableStateOf(store.before2h) }
     var b30 by remember { mutableStateOf(store.before30m) }
     var b10 by remember { mutableStateOf(store.before10m) }
+    var customTime by remember { mutableStateOf(store.customReminderTime) }
     var showLogs by remember { mutableStateOf(false) }
     var logsText by remember { mutableStateOf("") }
 
@@ -64,65 +67,120 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
         }
         Text("⚙ Настройки", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
-        Text("Тема:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = {
-                themeMode = "system"; store.themeMode = "system"; onThemeChanged()
-            }) {
-                Text("Системная", color = if (themeMode == "system") Orange else Gray)
-            }
-            TextButton(onClick = {
-                themeMode = "dark"; store.themeMode = "dark"; onThemeChanged()
-            }) {
-                Text("Тёмная", color = if (themeMode == "dark") Orange else Gray)
-            }
-            TextButton(onClick = {
-                themeMode = "light"; store.themeMode = "light"; onThemeChanged()
-            }) {
-                Text("Светлая", color = if (themeMode == "light") Orange else Gray)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-
-        Text("Напоминать о замере:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(4.dp))
-        CheckRow("За 1 день", bDay) { bDay = it; store.beforeDay = it }
-        CheckRow("За 2 часа", b2h) { b2h = it; store.before2h = it }
-        CheckRow("За 30 минут", b30) { b30 = it; store.before30m = it }
-        CheckRow("За 10 минут", b10) { b10 = it; store.before10m = it }
-
-        Spacer(Modifier.height(16.dp))
-        Text("Мелодия:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        TextButton(onClick = {
-            val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                if (ringUri.isNotBlank()) {
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(ringUri))
+        // Блок темы
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Тема:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = {
+                        themeMode = "system"; store.themeMode = "system"; onThemeChanged()
+                    }) {
+                        Text("Системная", color = if (themeMode == "system") Orange else Gray)
+                    }
+                    TextButton(onClick = {
+                        themeMode = "dark"; store.themeMode = "dark"; onThemeChanged()
+                    }) {
+                        Text("Тёмная", color = if (themeMode == "dark") Orange else Gray)
+                    }
+                    TextButton(onClick = {
+                        themeMode = "light"; store.themeMode = "light"; onThemeChanged()
+                    }) {
+                        Text("Светлая", color = if (themeMode == "light") Orange else Gray)
+                    }
                 }
             }
-            picker.launch(intent)
-        }) { Text("🎵 " + ringName(), color = Orange) }
+        }
 
-        Spacer(Modifier.height(24.dp))
-        Text("💡 Разрешения", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        Text("Если напоминания не срабатывают — разрешите точные будильники:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        TextButton(onClick = {
-            try {
-                ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", ctx.packageName, null)
-                })
-            } catch (e: Exception) { }
-        }) { Text("Открыть настройки приложения", color = Orange) }
+        // Блок напоминаний
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Напоминать о замере:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Spacer(Modifier.height(4.dp))
+                CheckRow("За 1 день", bDay) { bDay = it; store.beforeDay = it }
+                CheckRow("За 2 часа", b2h) { b2h = it; store.before2h = it }
+                CheckRow("За 30 минут", b30) { b30 = it; store.before30m = it }
+                CheckRow("За 10 минут", b10) { b10 = it; store.before10m = it }
+                Spacer(Modifier.height(8.dp))
+                Text("Своё время (например, 08:30):", fontSize = 13.sp, color = TextSecondary)
+                OutlinedTextField(
+                    value = customTime,
+                    onValueChange = { customTime = it; store.customReminderTime = it },
+                    placeholder = { Text("ЧЧ:ММ", color = TextSecondary) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                )
+            }
+        }
 
-        Spacer(Modifier.height(16.dp))
-        TextButton(onClick = {
-            val file = File(ctx.filesDir, "widget_log.txt")
-            logsText = if (file.exists()) file.readText() else "Файл логов не найден"
-            showLogs = true
-        }) { Text("📋 Показать логи виджета", color = Blue) }
+        // Блок мелодии
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Мелодия:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                TextButton(onClick = {
+                    val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                        if (ringUri.isNotBlank()) {
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(ringUri))
+                        }
+                    }
+                    picker.launch(intent)
+                }) { Text("🎵 " + ringName(), color = Orange) }
+            }
+        }
+
+        // Блок разрешений
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("💡 Разрешения", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Text("Если напоминания не срабатывают — разрешите точные будильники:", fontSize = 12.sp, color = TextSecondary)
+                TextButton(onClick = {
+                    try {
+                        ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", ctx.packageName, null)
+                        })
+                    } catch (e: Exception) { }
+                }) { Text("Открыть настройки приложения", color = Orange) }
+            }
+        }
+
+        // Блок логов (опционально)
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                TextButton(onClick = {
+                    val file = File(ctx.filesDir, "widget_log.txt")
+                    logsText = if (file.exists()) file.readText() else "Файл логов не найден"
+                    showLogs = true
+                }) { Text("📋 Показать логи виджета", color = Blue) }
+            }
+        }
     }
 
     if (showLogs) {
@@ -147,6 +205,6 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
 fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked, onCheckedChange = onChange)
-        Text(label, fontSize = 14.sp)
+        Text(label, fontSize = 14.sp, color = TextPrimary)
     }
 }
