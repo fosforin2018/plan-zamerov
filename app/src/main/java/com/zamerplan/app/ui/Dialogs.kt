@@ -41,7 +41,8 @@ fun ZamerFormDialog(
     recorder: VoiceRecorder,
     onSave: (Zamer) -> Unit,
     onDismiss: () -> Unit,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
+    sources: List<String> = emptyList()  // Добавлено
 ) {
     val ctx = LocalContext.current
     var date by remember { mutableStateOf(existing?.date ?: initialDate) }
@@ -118,7 +119,42 @@ fun ZamerFormDialog(
                         }
                     }
                 }
-                OutlinedTextField(contactFrom, { contactFrom = it }, label = { Text("От кого контакт") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                // Поле "От кого" с выпадающим списком
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedTextField(
+                        value = contactFrom,
+                        onValueChange = { contactFrom = it },
+                        label = { Text("От кого контакт") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { expanded = true }) {
+                                Text("▼")
+                            }
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        sources.forEach { source ->
+                            DropdownMenuItem(
+                                text = { Text(source) },
+                                onClick = {
+                                    contactFrom = source
+                                    expanded = false
+                                }
+                            )
+                        }
+                        if (sources.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Нет сохранённых источников") },
+                                onClick = { expanded = false }
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(name, { name = it }, label = { Text("Имя клиента") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(phone, { phone = it }, label = { Text("Телефон") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(address, { address = it }, label = { Text("Объект / адрес") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 3)
@@ -200,7 +236,6 @@ fun ZamerFormDialog(
         }
     )
 
-    // Дальше идут DatePickerDialog и TimePicker (как раньше)
     if (showDate) {
         DatePickerDialog(
             onDismissRequest = { showDate = false },
