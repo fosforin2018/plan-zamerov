@@ -32,6 +32,8 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
     var b30 by remember { mutableStateOf(store.before30m) }
     var b10 by remember { mutableStateOf(store.before10m) }
     var customTime by remember { mutableStateOf(store.customReminderTime) }
+    var sources by remember { mutableStateOf(store.sources.toList()) }
+    var newSource by remember { mutableStateOf("") }
     var showLogs by remember { mutableStateOf(false) }
     var logsText by remember { mutableStateOf("") }
 
@@ -107,10 +109,17 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("Напоминать о замере:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 Spacer(Modifier.height(4.dp))
-                CheckRow("За 1 день", bDay) { bDay = it; store.beforeDay = it }
-                CheckRow("За 2 часа", b2h) { b2h = it; store.before2h = it }
-                CheckRow("За 30 минут", b30) { b30 = it; store.before30m = it }
-                CheckRow("За 10 минут", b10) { b10 = it; store.before10m = it }
+                // Два столбца
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        CheckRowSmall("За 1 день", bDay) { bDay = it; store.beforeDay = it }
+                        CheckRowSmall("За 2 часа", b2h) { b2h = it; store.before2h = it }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        CheckRowSmall("За 30 минут", b30) { b30 = it; store.before30m = it }
+                        CheckRowSmall("За 10 минут", b10) { b10 = it; store.before10m = it }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text("Своё время (например, 08:30):", fontSize = 13.sp, color = TextSecondary)
                 OutlinedTextField(
@@ -118,8 +127,62 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
                     onValueChange = { customTime = it; store.customReminderTime = it },
                     placeholder = { Text("ЧЧ:ММ", color = TextSecondary) },
                     singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                 )
+            }
+        }
+
+        // Блок источников "От кого"
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Источники (От кого):", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = newSource,
+                        onValueChange = { newSource = it },
+                        placeholder = { Text("Имя", color = TextSecondary) },
+                        modifier = Modifier.weight(1f),
+                        textStyle = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (newSource.isNotBlank()) {
+                                val updated = sources + newSource.trim()
+                                sources = updated
+                                store.sources = updated.toSet()
+                                newSource = ""
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Orange)
+                    ) { Text("Добавить", color = Color.White) }
+                }
+                if (sources.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    sources.forEach { source ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("• $source", color = TextPrimary, modifier = Modifier.weight(1f))
+                            IconButton(onClick = {
+                                val updated = sources - source
+                                sources = updated
+                                store.sources = updated.toSet()
+                            }) {
+                                Text("✕", color = Red)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -166,7 +229,7 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
             }
         }
 
-        // Блок логов (опционально)
+        // Блок логов
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -202,9 +265,9 @@ fun SettingsScreen(onBack: () -> Unit, store: SettingsStore, onThemeChanged: () 
 }
 
 @Composable
-fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked, onCheckedChange = onChange)
-        Text(label, fontSize = 14.sp, color = TextPrimary)
+fun CheckRowSmall(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+        Checkbox(checked, onCheckedChange = onChange, modifier = Modifier.size(24.dp))
+        Text(label, fontSize = 12.sp, color = TextPrimary)
     }
 }
