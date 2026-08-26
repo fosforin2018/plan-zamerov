@@ -27,7 +27,7 @@ class ZamerWidget : AppWidgetProvider() {
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
         val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
 
-        // Заголовок
+        // Заголовок и счётчик
         val all = Storage(context).load()
         val today = LocalDate.now()
         val count = all.filter { it.status == ZamerStatus.PLANNED && it.date >= today }.size
@@ -40,13 +40,11 @@ class ZamerWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.widget_list, View.VISIBLE)
             rv.setViewVisibility(R.id.w_empty, View.GONE)
 
+            // Устанавливаем адаптер для ListView
             val intent = Intent(context, ZamerWidgetService::class.java).apply {
                 data = Uri.parse("zamerwidget://$widgetId")
             }
             rv.setRemoteAdapter(R.id.widget_list, intent)
-
-            // ВАЖНО: принудительно обновляем список
-            appWidgetManager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_list)
         }
 
         // Клик по корню открывает приложение
@@ -58,7 +56,12 @@ class ZamerWidget : AppWidgetProvider() {
         )
         rv.setOnClickPendingIntent(R.id.w_root, openAppIntent)
 
+        // Важно: сначала обновляем виджет, затем уведомляем об изменении данных
         appWidgetManager.updateAppWidget(widgetId, rv)
+
+        if (count > 0) {
+            appWidgetManager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_list)
+        }
     }
 
     companion object {
@@ -67,7 +70,9 @@ class ZamerWidget : AppWidgetProvider() {
                 val mgr = AppWidgetManager.getInstance(context)
                 val ids = mgr.getAppWidgetIds(ComponentName(context, ZamerWidget::class.java))
                 if (ids.isEmpty()) return
-                ids.forEach { id -> ZamerWidget().updateWidget(context, mgr, id) }
+                ids.forEach { id ->
+                    ZamerWidget().updateWidget(context, mgr, id)
+                }
             } catch (e: Exception) {
                 Log.e("ZamerWidget", "Ошибка refreshAll", e)
             }
