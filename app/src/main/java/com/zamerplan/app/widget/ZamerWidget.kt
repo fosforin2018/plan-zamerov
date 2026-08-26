@@ -22,6 +22,17 @@ class ZamerWidget : AppWidgetProvider() {
     companion object {
         private const val ACTION_PREV = "com.zamerplan.app.widget.PREV"
         private const val ACTION_NEXT = "com.zamerplan.app.widget.NEXT"
+
+        fun refreshAll(context: Context) {
+            try {
+                val mgr = AppWidgetManager.getInstance(context)
+                val ids = mgr.getAppWidgetIds(ComponentName(context, ZamerWidget::class.java))
+                if (ids.isEmpty()) return
+                ids.forEach { id -> ZamerWidget().updateWidget(context, mgr, id) }
+            } catch (e: Exception) {
+                Log.e("ZamerWidget", "Ошибка refreshAll", e)
+            }
+        }
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -67,10 +78,8 @@ class ZamerWidget : AppWidgetProvider() {
             .sortedWith(compareBy({ it.date }, { it.time }))
         val list = todayItems + futureItems
 
-        // Создаём корневой RemoteViews
         val root = RemoteViews(context.packageName, R.layout.zamer_widget)
 
-        // Заголовок с общим количеством
         val total = list.size
         root.setTextViewText(R.id.w_title, "📏 План замеров · всего $total")
 
@@ -85,21 +94,14 @@ class ZamerWidget : AppWidgetProvider() {
             root.setViewVisibility(R.id.btn_prev, View.VISIBLE)
             root.setViewVisibility(R.id.btn_next, View.VISIBLE)
 
-            // Очищаем ViewFlipper (на случай повторного обновления)
-            // К сожалению, RemoteViews не имеет метода removeAllViews, поэтому пересоздаём все страницы
-            // Это нормально, если виджет обновляется не слишком часто.
-
-            // Количество страниц
             val pageSize = 4
             val pageCount = (total + pageSize - 1) / pageSize
 
-            // Добавляем страницы
             for (page in 0 until pageCount) {
                 val pageRemoteViews = createPage(context, list, page, pageSize)
                 root.addView(R.id.view_flipper, pageRemoteViews)
             }
 
-            // Устанавливаем кнопки навигации
             val prevIntent = PendingIntent.getBroadcast(
                 context,
                 widgetId * 10 + 1,
@@ -123,7 +125,6 @@ class ZamerWidget : AppWidgetProvider() {
             root.setOnClickPendingIntent(R.id.btn_next, nextIntent)
         }
 
-        // Клик по корню открывает приложение
         val openAppIntent = PendingIntent.getActivity(
             context,
             0,
@@ -140,11 +141,9 @@ class ZamerWidget : AppWidgetProvider() {
         val start = page * pageSize
         val end = minOf(start + pageSize, list.size)
 
-        // Заполняем 4 карточки (или меньше на последней странице)
         for (i in start until end) {
             val z = list[i]
-            val indexInPage = i - start
-            when (indexInPage) {
+            when (i - start) {
                 0 -> fillCard(pageRemoteViews, context, z, R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map)
                 1 -> fillCard(pageRemoteViews, context, z, R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map)
                 2 -> fillCard(pageRemoteViews, context, z, R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map)
@@ -152,8 +151,7 @@ class ZamerWidget : AppWidgetProvider() {
             }
         }
 
-        // Скрываем пустые карточки на последней странице
-        for (i in end - start until 4) {
+        for (i in (end - start) until 4) {
             val cardId = when (i) {
                 0 -> R.id.card_1
                 1 -> R.id.card_2
@@ -210,18 +208,5 @@ class ZamerWidget : AppWidgetProvider() {
             ))
             rv.setViewVisibility(mapId, View.VISIBLE)
         } else rv.setViewVisibility(mapId, View.GONE)
-    }
-
-    companion object {
-        fun refreshAll(context: Context) {
-            try {
-                val mgr = AppWidgetManager.getInstance(context)
-                val ids = mgr.getAppWidgetIds(ComponentName(context, ZamerWidget::class.java))
-                if (ids.isEmpty()) return
-                ids.forEach { id -> ZamerWidget().updateWidget(context, mgr, id) }
-            } catch (e: Exception) {
-                Log.e("ZamerWidget", "Ошибка refreshAll", e)
-            }
-        }
     }
 }
