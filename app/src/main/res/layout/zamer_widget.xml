@@ -17,15 +17,17 @@
         android:textStyle="bold"
         android:paddingBottom="4dp" />
 
-    <ListView
+    <GridView
         android:id="@+id/widget_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="@null"
-        android:dividerHeight="0dp"
+        android:numColumns="1"
+        android:verticalSpacing="4dp"
+        android:horizontalSpacing="0dp"
+        android:stretchMode="columnWidth"
         android:listSelector="@android:color/transparent" />
-
+    
     <TextView
         android:id="@+id/w_empty"
         android:layout_width="match_parent"
