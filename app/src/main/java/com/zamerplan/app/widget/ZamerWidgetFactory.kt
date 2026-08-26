@@ -2,12 +2,14 @@ package com.zamerplan.app.widget
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.zamerplan.app.R
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
+import java.io.File
 import java.time.LocalDate
 
 class ZamerWidgetFactory(
@@ -17,12 +19,25 @@ class ZamerWidgetFactory(
 
     private val zamers = mutableListOf<Zamer>()
 
+    // Функция для добавления записи в файл widget_log.txt
+    private fun log(message: String) {
+        try {
+            val logFile = File(context.filesDir, "widget_log.txt")
+            logFile.appendText("${System.currentTimeMillis()}: $message\n")
+        } catch (e: Exception) {
+            Log.e("ZamerWidgetFactory", "Не удалось записать лог", e)
+        }
+    }
+
     override fun onCreate() {
+        log("onCreate")
         loadData()
     }
 
     override fun onDataSetChanged() {
+        log("onDataSetChanged")
         loadData()
+        log("После загрузки: ${zamers.size} замеров")
     }
 
     private fun loadData() {
@@ -33,15 +48,21 @@ class ZamerWidgetFactory(
             .sortedWith(compareBy({ it.date }, { it.time }))
         zamers.clear()
         zamers.addAll(todayItems + futureItems)
+        log("Загружено замеров: ${zamers.size}")
     }
 
     override fun onDestroy() {
+        log("onDestroy")
         zamers.clear()
     }
 
-    override fun getCount(): Int = zamers.size
+    override fun getCount(): Int {
+        log("getCount: ${zamers.size}")
+        return zamers.size
+    }
 
     override fun getViewAt(position: Int): RemoteViews {
+        log("getViewAt($position): ${zamers[position].name}")
         val z = zamers[position]
         val rv = RemoteViews(context.packageName, R.layout.widget_list_item)
 
