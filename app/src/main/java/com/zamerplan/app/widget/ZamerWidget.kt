@@ -56,7 +56,7 @@ class ZamerWidget : AppWidgetProvider() {
         )
         rv.setOnClickPendingIntent(R.id.w_root, openAppIntent)
 
-        // Важно: сначала обновляем виджет, затем уведомляем об изменении данных
+        // ВАЖНО: сначала обновляем виджет, затем уведомляем об изменении данных
         appWidgetManager.updateAppWidget(widgetId, rv)
 
         if (count > 0) {
