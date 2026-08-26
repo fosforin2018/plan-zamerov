@@ -19,9 +19,36 @@ import java.time.LocalDate
 
 class ZamerWidget : AppWidgetProvider() {
 
+    companion object {
+        private const val ACTION_PREV = "com.zamerplan.app.widget.PREV"
+        private const val ACTION_NEXT = "com.zamerplan.app.widget.NEXT"
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (widgetId in appWidgetIds) {
             updateWidget(context, appWidgetManager, widgetId)
+        }
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        when (intent.action) {
+            ACTION_NEXT -> {
+                val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+                if (widgetId != -1) {
+                    val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
+                    rv.showNext(R.id.view_flipper)
+                    AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+                }
+            }
+            ACTION_PREV -> {
+                val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+                if (widgetId != -1) {
+                    val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
+                    rv.showPrevious(R.id.view_flipper)
+                    AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+                }
+            }
         }
     }
 
@@ -33,73 +60,124 @@ class ZamerWidget : AppWidgetProvider() {
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
-        val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
         val all = Storage(context).load()
         val today = LocalDate.now()
-
         val todayItems = all.filter { it.date == today }.sortedBy { it.time }
         val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
             .sortedWith(compareBy({ it.date }, { it.time }))
+        val list = todayItems + futureItems
 
-        val list = (todayItems + futureItems).take(4)
+        // Создаём корневой RemoteViews
+        val root = RemoteViews(context.packageName, R.layout.zamer_widget)
 
-        rv.setTextViewText(R.id.w_title, "📏 План замеров · ${list.size} шт.")
+        // Заголовок с общим количеством
+        val total = list.size
+        root.setTextViewText(R.id.w_title, "📏 План замеров · всего $total")
 
+        if (total == 0) {
+            root.setViewVisibility(R.id.view_flipper, View.GONE)
+            root.setViewVisibility(R.id.btn_prev, View.GONE)
+            root.setViewVisibility(R.id.btn_next, View.GONE)
+            root.setViewVisibility(R.id.w_empty, View.VISIBLE)
+        } else {
+            root.setViewVisibility(R.id.w_empty, View.GONE)
+            root.setViewVisibility(R.id.view_flipper, View.VISIBLE)
+            root.setViewVisibility(R.id.btn_prev, View.VISIBLE)
+            root.setViewVisibility(R.id.btn_next, View.VISIBLE)
+
+            // Очищаем ViewFlipper (на случай повторного обновления)
+            // К сожалению, RemoteViews не имеет метода removeAllViews, поэтому пересоздаём все страницы
+            // Это нормально, если виджет обновляется не слишком часто.
+
+            // Количество страниц
+            val pageSize = 4
+            val pageCount = (total + pageSize - 1) / pageSize
+
+            // Добавляем страницы
+            for (page in 0 until pageCount) {
+                val pageRemoteViews = createPage(context, list, page, pageSize)
+                root.addView(R.id.view_flipper, pageRemoteViews)
+            }
+
+            // Устанавливаем кнопки навигации
+            val prevIntent = PendingIntent.getBroadcast(
+                context,
+                widgetId * 10 + 1,
+                Intent(context, ZamerWidget::class.java).apply {
+                    action = ACTION_PREV
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            root.setOnClickPendingIntent(R.id.btn_prev, prevIntent)
+
+            val nextIntent = PendingIntent.getBroadcast(
+                context,
+                widgetId * 10 + 2,
+                Intent(context, ZamerWidget::class.java).apply {
+                    action = ACTION_NEXT
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            root.setOnClickPendingIntent(R.id.btn_next, nextIntent)
+        }
+
+        // Клик по корню открывает приложение
         val openAppIntent = PendingIntent.getActivity(
             context,
             0,
             Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        rv.setOnClickPendingIntent(R.id.w_root, openAppIntent)
+        root.setOnClickPendingIntent(R.id.w_root, openAppIntent)
 
-        if (list.isEmpty()) {
-            rv.setViewVisibility(R.id.w_empty, View.VISIBLE)
-            rv.setViewVisibility(R.id.card_1, View.GONE)
-            rv.setViewVisibility(R.id.card_2, View.GONE)
-            rv.setViewVisibility(R.id.card_3, View.GONE)
-            rv.setViewVisibility(R.id.card_4, View.GONE)
-        } else {
-            rv.setViewVisibility(R.id.w_empty, View.GONE)
+        appWidgetManager.updateAppWidget(widgetId, root)
+    }
 
-            if (list.size > 0) {
-                rv.setViewVisibility(R.id.card_1, View.VISIBLE)
-                fillCard(rv, context, list[0], R.id.card_1, R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map, statusColor(list[0].status))
-            } else rv.setViewVisibility(R.id.card_1, View.GONE)
+    private fun createPage(context: Context, list: List<Zamer>, page: Int, pageSize: Int): RemoteViews {
+        val pageRemoteViews = RemoteViews(context.packageName, R.layout.zamer_widget_page)
+        val start = page * pageSize
+        val end = minOf(start + pageSize, list.size)
 
-            if (list.size > 1) {
-                rv.setViewVisibility(R.id.card_2, View.VISIBLE)
-                fillCard(rv, context, list[1], R.id.card_2, R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map, statusColor(list[1].status))
-            } else rv.setViewVisibility(R.id.card_2, View.GONE)
-
-            if (list.size > 2) {
-                rv.setViewVisibility(R.id.card_3, View.VISIBLE)
-                fillCard(rv, context, list[2], R.id.card_3, R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map, statusColor(list[2].status))
-            } else rv.setViewVisibility(R.id.card_3, View.GONE)
-
-            if (list.size > 3) {
-                rv.setViewVisibility(R.id.card_4, View.VISIBLE)
-                fillCard(rv, context, list[3], R.id.card_4, R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_call, R.id.t4_map, statusColor(list[3].status))
-            } else rv.setViewVisibility(R.id.card_4, View.GONE)
+        // Заполняем 4 карточки (или меньше на последней странице)
+        for (i in start until end) {
+            val z = list[i]
+            val indexInPage = i - start
+            when (indexInPage) {
+                0 -> fillCard(pageRemoteViews, context, z, R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map)
+                1 -> fillCard(pageRemoteViews, context, z, R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map)
+                2 -> fillCard(pageRemoteViews, context, z, R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map)
+                3 -> fillCard(pageRemoteViews, context, z, R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_call, R.id.t4_map)
+            }
         }
 
-        appWidgetManager.updateAppWidget(widgetId, rv)
+        // Скрываем пустые карточки на последней странице
+        for (i in end - start until 4) {
+            val cardId = when (i) {
+                0 -> R.id.card_1
+                1 -> R.id.card_2
+                2 -> R.id.card_3
+                else -> R.id.card_4
+            }
+            pageRemoteViews.setViewVisibility(cardId, View.GONE)
+        }
+
+        return pageRemoteViews
     }
 
     private fun fillCard(
         rv: RemoteViews,
         context: Context,
         z: Zamer,
-        cardId: Int,
         timeId: Int,
         nameId: Int,
         addrId: Int,
         callId: Int,
-        mapId: Int,
-        color: Int
+        mapId: Int
     ) {
         rv.setTextViewText(timeId, z.timeText())
-        rv.setInt(timeId, "setTextColor", color)
+        rv.setInt(timeId, "setTextColor", statusColor(z.status))
 
         if (z.name.isNotBlank()) {
             rv.setTextViewText(nameId, z.name)
