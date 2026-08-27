@@ -22,13 +22,35 @@
             android:padding="8dp"
             android:layout_margin="4dp">
 
-            <TextView
-                android:id="@+id/t1_time"
-                android:layout_width="wrap_content"
+            <!-- Первая строка: время и микрофон -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#FF7043"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/t1_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FF7043"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/t1_mic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎤"
+                    android:textColor="#FFAB91"
+                    android:textSize="16sp"
+                    android:padding="2dp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/t1_name"
@@ -36,6 +58,15 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/t1_from"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#B3FFFFFF"
+                android:textSize="11sp"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
@@ -48,6 +79,7 @@
                 android:maxLines="2"
                 android:ellipsize="end" />
 
+            <!-- Кнопки: звонок, карта, готово (без фона, крупнее) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -62,10 +94,9 @@
                     android:layout_height="wrap_content"
                     android:text="✆"
                     android:textColor="#4CAF50"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t1_map"
@@ -74,11 +105,9 @@
                     android:layout_height="wrap_content"
                     android:text="⌖"
                     android:textColor="#1E88E5"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t1_done"
@@ -87,15 +116,13 @@
                     android:layout_height="wrap_content"
                     android:text="✔"
                     android:textColor="#81C784"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Карточка 2 -->
+        <!-- Карточка 2 (аналогично) -->
         <LinearLayout
             android:id="@+id/card_2"
             android:layout_width="0dp"
@@ -106,13 +133,34 @@
             android:padding="8dp"
             android:layout_margin="4dp">
 
-            <TextView
-                android:id="@+id/t2_time"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#FF7043"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/t2_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FF7043"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/t2_mic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎤"
+                    android:textColor="#FFAB91"
+                    android:textSize="16sp"
+                    android:padding="2dp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/t2_name"
@@ -120,6 +168,15 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/t2_from"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#B3FFFFFF"
+                android:textSize="11sp"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
@@ -146,10 +203,9 @@
                     android:layout_height="wrap_content"
                     android:text="✆"
                     android:textColor="#4CAF50"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t2_map"
@@ -158,11 +214,9 @@
                     android:layout_height="wrap_content"
                     android:text="⌖"
                     android:textColor="#1E88E5"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t2_done"
@@ -171,16 +225,14 @@
                     android:layout_height="wrap_content"
                     android:text="✔"
                     android:textColor="#81C784"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Ряд 2 -->
+    <!-- Ряд 2 (аналогично для карточек 3 и 4) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -198,13 +250,34 @@
             android:padding="8dp"
             android:layout_margin="4dp">
 
-            <TextView
-                android:id="@+id/t3_time"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#FF7043"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/t3_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FF7043"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/t3_mic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎤"
+                    android:textColor="#FFAB91"
+                    android:textSize="16sp"
+                    android:padding="2dp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/t3_name"
@@ -212,6 +285,15 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/t3_from"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#B3FFFFFF"
+                android:textSize="11sp"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
@@ -238,10 +320,9 @@
                     android:layout_height="wrap_content"
                     android:text="✆"
                     android:textColor="#4CAF50"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t3_map"
@@ -250,11 +331,9 @@
                     android:layout_height="wrap_content"
                     android:text="⌖"
                     android:textColor="#1E88E5"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t3_done"
@@ -263,11 +342,9 @@
                     android:layout_height="wrap_content"
                     android:text="✔"
                     android:textColor="#81C784"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -282,13 +359,34 @@
             android:padding="8dp"
             android:layout_margin="4dp">
 
-            <TextView
-                android:id="@+id/t4_time"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#FF7043"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/t4_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FF7043"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/t4_mic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎤"
+                    android:textColor="#FFAB91"
+                    android:textSize="16sp"
+                    android:padding="2dp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/t4_name"
@@ -296,6 +394,15 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/t4_from"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#B3FFFFFF"
+                android:textSize="11sp"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
@@ -322,10 +429,9 @@
                     android:layout_height="wrap_content"
                     android:text="✆"
                     android:textColor="#4CAF50"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t4_map"
@@ -334,11 +440,9 @@
                     android:layout_height="wrap_content"
                     android:text="⌖"
                     android:textColor="#1E88E5"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
 
                 <TextView
                     android:id="@+id/t4_done"
@@ -347,11 +451,9 @@
                     android:layout_height="wrap_content"
                     android:text="✔"
                     android:textColor="#81C784"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:gravity="center"
-                    android:background="@drawable/widget_btn_bg"
-                    android:padding="8dp"
-                    android:layout_marginStart="4dp" />
+                    android:padding="4dp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
