@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         storage = Storage(this)
         settings = SettingsStore(this)
-        zamers.addAll(storage.load())
+        reloadZamers()  // загружаем данные при старте
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -75,6 +75,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Перезагружаем данные при возвращении в приложение
+        reloadZamers()
+        ReminderScheduler.scheduleAll(this, zamers, settings)
+    }
+
+    private fun reloadZamers() {
+        zamers.clear()
+        zamers.addAll(storage.load())
     }
 
     @Composable
@@ -134,8 +146,8 @@ fun MainScreen(
     var showForm by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Zamer?>(null) }
     var rescheduleTarget by remember { mutableStateOf<Zamer?>(null) }
-    val sources = settings.sources.toList() // список источников "От кого"
 
+    val sources = settings.sources.toList()
     val context = LocalContext.current
 
     @Composable
@@ -192,7 +204,7 @@ fun MainScreen(
                 Text("План замеров", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 TextButton(onClick = onOpenSettings) { Text("⚙") }
             }
-            // Новый календарь с датой
+
             CollapsibleCalendar(
                 selectedDate = selectedDate,
                 onSelectDate = { selectedDate = it },
@@ -200,6 +212,7 @@ fun MainScreen(
                 onMonthChange = { month = it },
                 countsByDay = counts
             )
+
             Text(
                 selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))) +
                     " · замеров: " + dayList.size + " · " + daySum + " ₽",
@@ -207,12 +220,15 @@ fun MainScreen(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
             )
+
             if (dayList.isEmpty()) {
-                Text("Нет замеров на этот день. Нажмите «+», чтобы добавить.",
+                Text(
+                    "Нет замеров на этот день. Нажмите «+», чтобы добавить.",
                     modifier = Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
             if (dayList.size == 1) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                     CardSlot(dayList[0])
@@ -240,6 +256,7 @@ fun MainScreen(
             sources = sources
         )
     }
+
     editTarget?.let { z ->
         ZamerFormDialog(
             initialDate = z.date,
@@ -251,6 +268,7 @@ fun MainScreen(
             sources = sources
         )
     }
+
     rescheduleTarget?.let { z ->
         RescheduleDialog(
             onMove = { d -> onUpdate(z.copy(date = d, status = ZamerStatus.PLANNED)); rescheduleTarget = null },
