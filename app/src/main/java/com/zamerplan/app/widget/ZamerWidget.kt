@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.zamerplan.app.MainActivity
 import com.zamerplan.app.R
+import com.zamerplan.app.alarm.ReminderScheduler
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
@@ -45,13 +46,8 @@ class ZamerWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        // Логирование для диагностики
-        val logFile = File(context.filesDir, "widget_log.txt")
-        logFile.appendText("onReceive action=${intent.action}\n")
-
         when (intent.action) {
             ACTION_NEXT -> {
-                logFile.appendText("ACTION_NEXT\n")
                 val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
                 if (widgetId != -1) {
                     val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
@@ -60,7 +56,6 @@ class ZamerWidget : AppWidgetProvider() {
                 }
             }
             ACTION_PREV -> {
-                logFile.appendText("ACTION_PREV\n")
                 val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
                 if (widgetId != -1) {
                     val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
@@ -69,18 +64,17 @@ class ZamerWidget : AppWidgetProvider() {
                 }
             }
             ACTION_DONE -> {
-                logFile.appendText("ACTION_DONE\n")
                 val zamerId = intent.getLongExtra("zamer_id", -1L)
-                logFile.appendText("zamerId=$zamerId\n")
                 if (zamerId != -1L) {
                     val storage = Storage(context)
                     val list = storage.load().toMutableList()
                     val index = list.indexOfFirst { it.id == zamerId }
-                    logFile.appendText("index=$index, size=${list.size}\n")
                     if (index != -1) {
                         list[index] = list[index].copy(status = ZamerStatus.DONE)
                         storage.save(list)
-                        logFile.appendText("Saved, refreshAll\n")
+                        // Отменяем напоминания для этого замера
+                        ReminderScheduler.cancel(context, zamerId)
+                        // Обновляем все виджеты
                         refreshAll(context)
                     }
                 }
@@ -102,7 +96,8 @@ class ZamerWidget : AppWidgetProvider() {
             .sortedBy { it.time }
         val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
             .sortedWith(compareBy({ it.date }, { it.time }))
-        val list = todayItems + futureItems
+        // Убираем возможные дубли по id
+        val list = (todayItems + futureItems).distinctBy { it.id }
 
         val root = RemoteViews(context.packageName, R.layout.zamer_widget)
 
