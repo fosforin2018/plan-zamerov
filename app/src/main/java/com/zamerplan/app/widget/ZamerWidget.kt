@@ -73,13 +73,10 @@ class ZamerWidget : AppWidgetProvider() {
                         list[index] = list[index].copy(status = ZamerStatus.DONE)
                         storage.save(list)
                         ReminderScheduler.cancel(context, zamerId)
-
-                        // Обновляем только тот виджет, который был нажат
                         if (widgetId != -1) {
                             val mgr = AppWidgetManager.getInstance(context)
                             updateWidget(context, mgr, widgetId)
                         } else {
-                            // Если widgetId не передан, обновляем все
                             refreshAll(context)
                         }
                     }
@@ -119,6 +116,9 @@ class ZamerWidget : AppWidgetProvider() {
             root.setViewVisibility(R.id.view_flipper, View.VISIBLE)
             root.setViewVisibility(R.id.btn_prev, View.VISIBLE)
             root.setViewVisibility(R.id.btn_next, View.VISIBLE)
+
+            // ВАЖНО: очищаем ViewFlipper от старых страниц
+            root.removeAllViews(R.id.view_flipper)
 
             val pageSize = 4
             val pageCount = (total + pageSize - 1) / pageSize
