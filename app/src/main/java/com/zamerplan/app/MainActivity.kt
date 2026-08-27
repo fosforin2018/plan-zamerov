@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
             }
         }
-        ReminderScheduler.scheduleAll(this, zamers, settings)
+        ReminderScheduler.scheduleAll(this, zamers, settings)  // только при старте
 
         val themeMode = settings.themeMode
         setContent {
@@ -79,9 +79,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Перезагружаем данные при возвращении в приложение
+        // Перезагружаем данные, но НЕ пересоздаём будильники
         reloadZamers()
-        ReminderScheduler.scheduleAll(this, zamers, settings)
     }
 
     private fun reloadZamers() {
@@ -101,21 +100,21 @@ class MainActivity : ComponentActivity() {
                 onSave = { z ->
                     zamers.add(z)
                     storage.save(zamers)
-                    ReminderScheduler.scheduleAll(this, zamers, settings)
+                    ReminderScheduler.scheduleAll(this, zamers, settings)  // при создании
                     ZamerWidget.refreshAll(this)
                 },
                 onUpdate = { z ->
                     val i = zamers.indexOfFirst { it.id == z.id }
                     if (i >= 0) {
                         zamers[i] = z
-                        ReminderScheduler.schedule(this, z, settings)
+                        ReminderScheduler.schedule(this, z, settings)  // при обновлении
                     }
                     storage.save(zamers)
                     ZamerWidget.refreshAll(this)
                 },
                 onDelete = { z ->
                     storage.deleteVoice(z.id)
-                    ReminderScheduler.cancel(this, z.id)
+                    ReminderScheduler.cancel(this, z.id)  // при удалении
                     zamers.removeAll { it.id == z.id }
                     storage.save(zamers)
                     ZamerWidget.refreshAll(this)
