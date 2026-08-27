@@ -18,14 +18,12 @@
         android:textStyle="bold"
         android:paddingBottom="4dp" />
 
-    <!-- ViewFlipper для страниц с карточками -->
+    <!-- ViewFlipper для страниц с карточками, без автопрокрутки -->
     <ViewFlipper
         android:id="@+id/view_flipper"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:flipInterval="5000"
-        android:autoStart="true" />
+        android:layout_weight="1" />
 
     <!-- Кнопки навигации -->
     <LinearLayout
