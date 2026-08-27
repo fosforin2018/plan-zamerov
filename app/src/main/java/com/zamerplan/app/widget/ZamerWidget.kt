@@ -16,7 +16,6 @@ import com.zamerplan.app.alarm.ReminderScheduler
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
-import java.io.File
 import java.time.LocalDate
 
 class ZamerWidget : AppWidgetProvider() {
@@ -65,6 +64,7 @@ class ZamerWidget : AppWidgetProvider() {
             }
             ACTION_DONE -> {
                 val zamerId = intent.getLongExtra("zamer_id", -1L)
+                val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
                 if (zamerId != -1L) {
                     val storage = Storage(context)
                     val list = storage.load().toMutableList()
@@ -72,10 +72,16 @@ class ZamerWidget : AppWidgetProvider() {
                     if (index != -1) {
                         list[index] = list[index].copy(status = ZamerStatus.DONE)
                         storage.save(list)
-                        // Отменяем напоминания для этого замера
                         ReminderScheduler.cancel(context, zamerId)
-                        // Обновляем все виджеты
-                        refreshAll(context)
+
+                        // Обновляем только тот виджет, который был нажат
+                        if (widgetId != -1) {
+                            val mgr = AppWidgetManager.getInstance(context)
+                            updateWidget(context, mgr, widgetId)
+                        } else {
+                            // Если widgetId не передан, обновляем все
+                            refreshAll(context)
+                        }
                     }
                 }
             }
@@ -96,7 +102,6 @@ class ZamerWidget : AppWidgetProvider() {
             .sortedBy { it.time }
         val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
             .sortedWith(compareBy({ it.date }, { it.time }))
-        // Убираем возможные дубли по id
         val list = (todayItems + futureItems).distinctBy { it.id }
 
         val root = RemoteViews(context.packageName, R.layout.zamer_widget)
@@ -119,7 +124,7 @@ class ZamerWidget : AppWidgetProvider() {
             val pageCount = (total + pageSize - 1) / pageSize
 
             for (page in 0 until pageCount) {
-                val pageRemoteViews = createPage(context, list, page, pageSize)
+                val pageRemoteViews = createPage(context, list, page, pageSize, widgetId)
                 root.addView(R.id.view_flipper, pageRemoteViews)
             }
 
@@ -157,7 +162,13 @@ class ZamerWidget : AppWidgetProvider() {
         appWidgetManager.updateAppWidget(widgetId, root)
     }
 
-    private fun createPage(context: Context, list: List<Zamer>, page: Int, pageSize: Int): RemoteViews {
+    private fun createPage(
+        context: Context,
+        list: List<Zamer>,
+        page: Int,
+        pageSize: Int,
+        widgetId: Int
+    ): RemoteViews {
         val pageRemoteViews = RemoteViews(context.packageName, R.layout.zamer_widget_page)
         val start = page * pageSize
         val end = minOf(start + pageSize, list.size)
@@ -167,16 +178,16 @@ class ZamerWidget : AppWidgetProvider() {
             when (i - start) {
                 0 -> fillCard(pageRemoteViews, context, z,
                     R.id.t1_time, R.id.t1_name, R.id.t1_addr,
-                    R.id.t1_call, R.id.t1_map, R.id.t1_done)
+                    R.id.t1_call, R.id.t1_map, R.id.t1_done, widgetId)
                 1 -> fillCard(pageRemoteViews, context, z,
                     R.id.t2_time, R.id.t2_name, R.id.t2_addr,
-                    R.id.t2_call, R.id.t2_map, R.id.t2_done)
+                    R.id.t2_call, R.id.t2_map, R.id.t2_done, widgetId)
                 2 -> fillCard(pageRemoteViews, context, z,
                     R.id.t3_time, R.id.t3_name, R.id.t3_addr,
-                    R.id.t3_call, R.id.t3_map, R.id.t3_done)
+                    R.id.t3_call, R.id.t3_map, R.id.t3_done, widgetId)
                 3 -> fillCard(pageRemoteViews, context, z,
                     R.id.t4_time, R.id.t4_name, R.id.t4_addr,
-                    R.id.t4_call, R.id.t4_map, R.id.t4_done)
+                    R.id.t4_call, R.id.t4_map, R.id.t4_done, widgetId)
             }
         }
 
@@ -202,7 +213,8 @@ class ZamerWidget : AppWidgetProvider() {
         addrId: Int,
         callId: Int,
         mapId: Int,
-        doneId: Int
+        doneId: Int,
+        widgetId: Int
     ) {
         rv.setTextViewText(timeId, z.timeText())
         rv.setInt(timeId, "setTextColor", statusColor(z.status))
@@ -248,6 +260,7 @@ class ZamerWidget : AppWidgetProvider() {
             Intent(context, ZamerWidget::class.java).apply {
                 action = ACTION_DONE
                 putExtra("zamer_id", z.id)
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
