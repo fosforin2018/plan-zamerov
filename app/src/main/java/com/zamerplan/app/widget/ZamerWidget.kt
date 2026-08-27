@@ -15,6 +15,7 @@ import com.zamerplan.app.R
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
+import java.io.File
 import java.time.LocalDate
 
 class ZamerWidget : AppWidgetProvider() {
@@ -22,6 +23,7 @@ class ZamerWidget : AppWidgetProvider() {
     companion object {
         private const val ACTION_PREV = "com.zamerplan.app.widget.PREV"
         private const val ACTION_NEXT = "com.zamerplan.app.widget.NEXT"
+        private const val ACTION_DONE = "com.zamerplan.app.widget.DONE"
 
         fun refreshAll(context: Context) {
             try {
@@ -43,8 +45,13 @@ class ZamerWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
+        // Логирование для диагностики
+        val logFile = File(context.filesDir, "widget_log.txt")
+        logFile.appendText("onReceive action=${intent.action}\n")
+
         when (intent.action) {
             ACTION_NEXT -> {
+                logFile.appendText("ACTION_NEXT\n")
                 val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
                 if (widgetId != -1) {
                     val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
@@ -53,11 +60,29 @@ class ZamerWidget : AppWidgetProvider() {
                 }
             }
             ACTION_PREV -> {
+                logFile.appendText("ACTION_PREV\n")
                 val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
                 if (widgetId != -1) {
                     val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
                     rv.showPrevious(R.id.view_flipper)
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+                }
+            }
+            ACTION_DONE -> {
+                logFile.appendText("ACTION_DONE\n")
+                val zamerId = intent.getLongExtra("zamer_id", -1L)
+                logFile.appendText("zamerId=$zamerId\n")
+                if (zamerId != -1L) {
+                    val storage = Storage(context)
+                    val list = storage.load().toMutableList()
+                    val index = list.indexOfFirst { it.id == zamerId }
+                    logFile.appendText("index=$index, size=${list.size}\n")
+                    if (index != -1) {
+                        list[index] = list[index].copy(status = ZamerStatus.DONE)
+                        storage.save(list)
+                        logFile.appendText("Saved, refreshAll\n")
+                        refreshAll(context)
+                    }
                 }
             }
         }
@@ -73,7 +98,8 @@ class ZamerWidget : AppWidgetProvider() {
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
         val all = Storage(context).load()
         val today = LocalDate.now()
-        val todayItems = all.filter { it.date == today }.sortedBy { it.time }
+        val todayItems = all.filter { it.date == today && it.status == ZamerStatus.PLANNED }
+            .sortedBy { it.time }
         val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
             .sortedWith(compareBy({ it.date }, { it.time }))
         val list = todayItems + futureItems
@@ -144,10 +170,18 @@ class ZamerWidget : AppWidgetProvider() {
         for (i in start until end) {
             val z = list[i]
             when (i - start) {
-                0 -> fillCard(pageRemoteViews, context, z, R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_call, R.id.t1_map)
-                1 -> fillCard(pageRemoteViews, context, z, R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_call, R.id.t2_map)
-                2 -> fillCard(pageRemoteViews, context, z, R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_call, R.id.t3_map)
-                3 -> fillCard(pageRemoteViews, context, z, R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_call, R.id.t4_map)
+                0 -> fillCard(pageRemoteViews, context, z,
+                    R.id.t1_time, R.id.t1_name, R.id.t1_addr,
+                    R.id.t1_call, R.id.t1_map, R.id.t1_done)
+                1 -> fillCard(pageRemoteViews, context, z,
+                    R.id.t2_time, R.id.t2_name, R.id.t2_addr,
+                    R.id.t2_call, R.id.t2_map, R.id.t2_done)
+                2 -> fillCard(pageRemoteViews, context, z,
+                    R.id.t3_time, R.id.t3_name, R.id.t3_addr,
+                    R.id.t3_call, R.id.t3_map, R.id.t3_done)
+                3 -> fillCard(pageRemoteViews, context, z,
+                    R.id.t4_time, R.id.t4_name, R.id.t4_addr,
+                    R.id.t4_call, R.id.t4_map, R.id.t4_done)
             }
         }
 
@@ -172,7 +206,8 @@ class ZamerWidget : AppWidgetProvider() {
         nameId: Int,
         addrId: Int,
         callId: Int,
-        mapId: Int
+        mapId: Int,
+        doneId: Int
     ) {
         rv.setTextViewText(timeId, z.timeText())
         rv.setInt(timeId, "setTextColor", statusColor(z.status))
@@ -187,6 +222,7 @@ class ZamerWidget : AppWidgetProvider() {
             rv.setViewVisibility(addrId, View.VISIBLE)
         } else rv.setViewVisibility(addrId, View.GONE)
 
+        // Кнопка звонка
         val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
         if (tel.isNotEmpty()) {
             rv.setOnClickPendingIntent(callId, PendingIntent.getActivity(
@@ -198,6 +234,7 @@ class ZamerWidget : AppWidgetProvider() {
             rv.setViewVisibility(callId, View.VISIBLE)
         } else rv.setViewVisibility(callId, View.GONE)
 
+        // Кнопка карты
         if (z.address.isNotBlank()) {
             rv.setOnClickPendingIntent(mapId, PendingIntent.getActivity(
                 context,
@@ -208,5 +245,18 @@ class ZamerWidget : AppWidgetProvider() {
             ))
             rv.setViewVisibility(mapId, View.VISIBLE)
         } else rv.setViewVisibility(mapId, View.GONE)
+
+        // Кнопка "Готово"
+        val doneIntent = PendingIntent.getBroadcast(
+            context,
+            z.id.toInt() + 2000,
+            Intent(context, ZamerWidget::class.java).apply {
+                action = ACTION_DONE
+                putExtra("zamer_id", z.id)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        rv.setOnClickPendingIntent(doneId, doneIntent)
+        rv.setViewVisibility(doneId, View.VISIBLE)
     }
 }
