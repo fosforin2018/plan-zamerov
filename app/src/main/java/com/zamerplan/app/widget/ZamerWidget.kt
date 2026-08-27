@@ -16,6 +16,7 @@ import com.zamerplan.app.alarm.ReminderScheduler
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
+import java.io.File
 import java.time.LocalDate
 
 class ZamerWidget : AppWidgetProvider() {
@@ -117,7 +118,7 @@ class ZamerWidget : AppWidgetProvider() {
             root.setViewVisibility(R.id.btn_prev, View.VISIBLE)
             root.setViewVisibility(R.id.btn_next, View.VISIBLE)
 
-            // ВАЖНО: очищаем ViewFlipper от старых страниц
+            // Очищаем ViewFlipper от старых страниц
             root.removeAllViews(R.id.view_flipper)
 
             val pageSize = 4
@@ -177,17 +178,17 @@ class ZamerWidget : AppWidgetProvider() {
             val z = list[i]
             when (i - start) {
                 0 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t1_time, R.id.t1_name, R.id.t1_addr,
-                    R.id.t1_call, R.id.t1_map, R.id.t1_done, widgetId)
+                    R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_from,
+                    R.id.t1_call, R.id.t1_map, R.id.t1_done, R.id.t1_mic, widgetId)
                 1 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t2_time, R.id.t2_name, R.id.t2_addr,
-                    R.id.t2_call, R.id.t2_map, R.id.t2_done, widgetId)
+                    R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_from,
+                    R.id.t2_call, R.id.t2_map, R.id.t2_done, R.id.t2_mic, widgetId)
                 2 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t3_time, R.id.t3_name, R.id.t3_addr,
-                    R.id.t3_call, R.id.t3_map, R.id.t3_done, widgetId)
+                    R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_from,
+                    R.id.t3_call, R.id.t3_map, R.id.t3_done, R.id.t3_mic, widgetId)
                 3 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t4_time, R.id.t4_name, R.id.t4_addr,
-                    R.id.t4_call, R.id.t4_map, R.id.t4_done, widgetId)
+                    R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_from,
+                    R.id.t4_call, R.id.t4_map, R.id.t4_done, R.id.t4_mic, widgetId)
             }
         }
 
@@ -211,9 +212,11 @@ class ZamerWidget : AppWidgetProvider() {
         timeId: Int,
         nameId: Int,
         addrId: Int,
+        fromId: Int,
         callId: Int,
         mapId: Int,
         doneId: Int,
+        micId: Int,
         widgetId: Int
     ) {
         rv.setTextViewText(timeId, z.timeText())
@@ -228,6 +231,12 @@ class ZamerWidget : AppWidgetProvider() {
             rv.setTextViewText(addrId, z.address)
             rv.setViewVisibility(addrId, View.VISIBLE)
         } else rv.setViewVisibility(addrId, View.GONE)
+
+        // Строка "От кого"
+        if (z.contactFrom.isNotBlank()) {
+            rv.setTextViewText(fromId, "От: " + z.contactFrom)
+            rv.setViewVisibility(fromId, View.VISIBLE)
+        } else rv.setViewVisibility(fromId, View.GONE)
 
         // Кнопка звонка
         val tel = z.phone.filter { c -> c.isDigit() || c == '+' }
@@ -266,5 +275,22 @@ class ZamerWidget : AppWidgetProvider() {
         )
         rv.setOnClickPendingIntent(doneId, doneIntent)
         rv.setViewVisibility(doneId, View.VISIBLE)
+
+        // Микрофон (показываем только если есть голосовой файл)
+        val voiceFile = File(context.filesDir, "voice_${z.id}.m4a")
+        if (voiceFile.exists()) {
+            val playIntent = PendingIntent.getService(
+                context,
+                z.id.toInt() + 3000,
+                Intent(context, VoicePlaybackService::class.java).apply {
+                    putExtra("voice_file_path", voiceFile.absolutePath)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            rv.setOnClickPendingIntent(micId, playIntent)
+            rv.setViewVisibility(micId, View.VISIBLE)
+        } else {
+            rv.setViewVisibility(micId, View.GONE)
+        }
     }
 }
