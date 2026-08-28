@@ -19,8 +19,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -79,10 +82,7 @@ fun ZamerFormDialog(
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            // Разрешение получено, можно начинать запись
-            // Но запуск записи будет из VoiceMessageRecorder
-        }
+        // Разрешение получено, можно начинать запись
     }
 
     val dateState = rememberDatePickerState(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
@@ -90,10 +90,7 @@ fun ZamerFormDialog(
     val timeEndState = rememberTimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
 
     AlertDialog(
-        onDismissRequest = {
-            // При закрытии во время записи останавливаем и сохраняем
-            onDismiss()
-        },
+        onDismissRequest = { onDismiss() },
         title = { Text(if (existing != null) "Редактировать замер" else "Новый замер") },
         text = {
             Column(
@@ -133,7 +130,6 @@ fun ZamerFormDialog(
                     }
                 }
 
-                // Поле "От кого" с выпадающим списком
                 var expanded by remember { mutableStateOf(false) }
                 Box {
                     OutlinedTextField(
@@ -223,7 +219,6 @@ fun ZamerFormDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                // Останавливаем запись, если идёт
                 val voiceFileFinal = if (voiceFile.exists() && voiceFile.length() > 0L) voiceFile.name else ""
                 onSave(
                     Zamer(
@@ -306,6 +301,7 @@ private fun VoiceMessageRecorder(
     onDeleteVoice: () -> Unit,
     onPermissionRequest: () -> Unit
 ) {
+    val context = LocalContext.current
     var isRecording by remember { mutableStateOf(false) }
     var recordSeconds by remember { mutableStateOf(0) }
     var hasVoice by remember { mutableStateOf(hasVoiceInitially) }
@@ -313,7 +309,6 @@ private fun VoiceMessageRecorder(
     var playProgress by remember { mutableFloatStateOf(0f) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
 
-    // Таймер записи
     LaunchedEffect(isRecording) {
         if (isRecording) {
             recordSeconds = 0
@@ -324,7 +319,6 @@ private fun VoiceMessageRecorder(
         }
     }
 
-    // Очистка плеера при уничтожении
     DisposableEffect(Unit) {
         onDispose {
             player?.release()
@@ -333,7 +327,7 @@ private fun VoiceMessageRecorder(
 
     fun startRecording() {
         if (ContextCompat.checkSelfPermission(
-                LocalContext.current,
+                context,
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -378,7 +372,6 @@ private fun VoiceMessageRecorder(
             }
             player?.start()
             isPlaying = true
-            // Простая анимация прогресса воспроизведения
             val duration = player?.duration ?: 0
             if (duration > 0) {
                 LaunchedEffect(isPlaying) {
@@ -402,7 +395,6 @@ private fun VoiceMessageRecorder(
         onDeleteVoice()
     }
 
-    // Пульсация красной точки при записи
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -416,7 +408,6 @@ private fun VoiceMessageRecorder(
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         if (!hasVoice && !isRecording) {
-            // Кнопка записи: белый круг с красной точкой и микрофон рядом
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -434,7 +425,6 @@ private fun VoiceMessageRecorder(
                 Text("Нажмите для записи", fontSize = 13.sp, color = Color.White)
             }
         } else if (isRecording) {
-            // Идёт запись: красный квадрат + таймер + пульсация
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -459,15 +449,11 @@ private fun VoiceMessageRecorder(
                 Box(
                     modifier = Modifier
                         .size(12.dp)
-                        .graphicsLayer {
-                            scaleX = pulseScale
-                            scaleY = pulseScale
-                        }
+                        .scale(pulseScale)
                         .background(Color.Red, CircleShape)
                 )
             }
         } else {
-            // Есть запись: плеер-сообщение
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -475,12 +461,9 @@ private fun VoiceMessageRecorder(
                     .background(Color(0xCC1E1E1E), RoundedCornerShape(16.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                // Волны (несколько полосок)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     repeat(5) { index ->
                         val height = if (isPlaying) {
-                            // Анимация высоты полоски
-                            val wave = (playProgress * 5).toInt()
                             (10 + (index + 1) * 3).dp
                         } else {
                             6.dp
@@ -496,7 +479,6 @@ private fun VoiceMessageRecorder(
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                // Длительность
                 val duration = if (isPlaying) {
                     val current = player?.currentPosition ?: 0
                     formatSeconds(current / 1000)
@@ -510,7 +492,6 @@ private fun VoiceMessageRecorder(
                 )
                 Spacer(Modifier.weight(1f))
 
-                // Кнопка Play/Pause
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -520,7 +501,6 @@ private fun VoiceMessageRecorder(
                     contentAlignment = Alignment.Center
                 ) {
                     if (isPlaying) {
-                        // Пауза: две полоски
                         Row {
                             Box(
                                 modifier = Modifier
@@ -537,7 +517,6 @@ private fun VoiceMessageRecorder(
                             )
                         }
                     } else {
-                        // Play: треугольник
                         Canvas(modifier = Modifier.size(16.dp)) {
                             val path = Path().apply {
                                 moveTo(0f, 0f)
@@ -550,7 +529,6 @@ private fun VoiceMessageRecorder(
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                // Корзина
                 Text(
                     text = "🗑",
                     fontSize = 20.sp,
