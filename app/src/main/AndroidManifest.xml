@@ -49,9 +49,6 @@
                 android:resource="@xml/zamer_widget_info" />
         </receiver>
 
-        <service
-            android:name=".widget.VoicePlaybackService"
-            android:exported="false" />
-
     </application>
+
 </manifest>
