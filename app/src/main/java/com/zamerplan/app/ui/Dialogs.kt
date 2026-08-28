@@ -2,18 +2,27 @@ package com.zamerplan.app.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,6 +32,7 @@ import com.zamerplan.app.alarm.VoiceRecorder
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerParser
 import com.zamerplan.app.model.ZamerStatus
+import kotlinx.coroutines.delay
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -42,7 +52,7 @@ fun ZamerFormDialog(
     onSave: (Zamer) -> Unit,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null,
-    sources: List<String> = emptyList()  // Добавлено
+    sources: List<String> = emptyList()
 ) {
     val ctx = LocalContext.current
     var date by remember { mutableStateOf(existing?.date ?: initialDate) }
@@ -59,8 +69,6 @@ fun ZamerFormDialog(
     var comment by remember { mutableStateOf(existing?.comment ?: "") }
     var rawText by remember { mutableStateOf("") }
     var hasVoice by remember { mutableStateOf(existing?.voiceFile?.isNotBlank() == true) }
-    var isRecording by remember { mutableStateOf(false) }
-    var voicePlaying by remember { mutableStateOf(false) }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     var showTimeEnd by remember { mutableStateOf(false) }
@@ -68,27 +76,24 @@ fun ZamerFormDialog(
     val id = existing?.id ?: System.currentTimeMillis()
     val voiceFile = File(ctx.filesDir, "voice_$id.m4a")
 
-    fun startRec() {
-        recorder.start(voiceFile)
-        isRecording = true
-    }
-
-    fun stopRec() {
-        recorder.stop()
-        isRecording = false
-        hasVoice = voiceFile.exists() && voiceFile.length() > 0L
-    }
-
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) startRec() }
+    ) { granted ->
+        if (granted) {
+            // Разрешение получено, можно начинать запись
+            // Но запуск записи будет из VoiceMessageRecorder
+        }
+    }
 
     val dateState = rememberDatePickerState(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
     val timeState = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute, is24Hour = true)
     val timeEndState = rememberTimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
 
     AlertDialog(
-        onDismissRequest = { if (isRecording) stopRec(); onDismiss() },
+        onDismissRequest = {
+            // При закрытии во время записи останавливаем и сохраняем
+            onDismiss()
+        },
         title = { Text(if (existing != null) "Редактировать замер" else "Новый замер") },
         text = {
             Column(
@@ -106,19 +111,28 @@ fun ZamerFormDialog(
                         Text(if (timeEnd.isBlank()) "Конец: —" else "до " + timeEnd, fontSize = 13.sp, maxLines = 1, softWrap = false)
                     }
                 }
+
                 if (existing != null) {
                     Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         ZamerStatus.values().forEach { s ->
                             val selected = s == status
                             TextButton(
                                 onClick = { status = s },
-                                modifier = Modifier.weight(1f).background(if (selected) statusColor(s) else Color.Transparent, RoundedCornerShape(8.dp)),
-                                colors = ButtonDefaults.textButtonColors(contentColor = if (selected) Color.White else statusColor(s)),
+                                modifier = Modifier.weight(1f).background(
+                                    if (selected) statusColor(s) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                ),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = if (selected) Color.White else statusColor(s)
+                                ),
                                 contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp)
-                            ) { Text(s.label, fontSize = 9.sp, maxLines = 1, softWrap = false) }
+                            ) {
+                                Text(s.label, fontSize = 9.sp, maxLines = 1, softWrap = false)
+                            }
                         }
                     }
                 }
+
                 // Поле "От кого" с выпадающим списком
                 var expanded by remember { mutableStateOf(false) }
                 Box {
@@ -129,15 +143,10 @@ fun ZamerFormDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
-                            IconButton(onClick = { expanded = true }) {
-                                Text("▼")
-                            }
+                            IconButton(onClick = { expanded = true }) { Text("▼") }
                         }
                     )
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         sources.forEach { source ->
                             DropdownMenuItem(
                                 text = { Text(source) },
@@ -155,6 +164,7 @@ fun ZamerFormDialog(
                         }
                     }
                 }
+
                 OutlinedTextField(name, { name = it }, label = { Text("Имя клиента") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(phone, { phone = it }, label = { Text("Телефон") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(address, { address = it }, label = { Text("Объект / адрес") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 3)
@@ -162,41 +172,27 @@ fun ZamerFormDialog(
                 OutlinedTextField(thickness, { thickness = it }, label = { Text("Толщина стяжки, см") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(price, { price = it }, label = { Text("Цена, ₽") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(comment, { comment = it }, label = { Text("Комментарий (лифт, паркинг и т.д.)") }, modifier = Modifier.fillMaxWidth(), minLines = 1, maxLines = 4)
-                Text("🎤 Голосовая напоминалка (себе)", fontSize = 12.sp, color = Orange, fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (isRecording) {
-                        TextButton(
-                            onClick = { stopRec() },
-                            modifier = Modifier.weight(1f).background(Red.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
-                            colors = ButtonDefaults.textButtonColors(contentColor = Red)
-                        ) { Text("🔴 Идет запись... Стоп", maxLines = 1, softWrap = false) }
-                    } else {
-                        TextButton(
-                            onClick = {
-                                val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-                                if (granted) startRec() else permLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("🎤 Записать голос", maxLines = 1, softWrap = false) }
+
+                // ===================== ГОЛОСОВОЕ СООБЩЕНИЕ =====================
+                VoiceMessageRecorder(
+                    recorder = recorder,
+                    voiceFile = voiceFile,
+                    hasVoiceInitially = hasVoice,
+                    onDeleteVoice = {
+                        voiceFile.delete()
+                        hasVoice = false
+                    },
+                    onPermissionRequest = {
+                        val granted = ContextCompat.checkSelfPermission(
+                            ctx, Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (!granted) {
+                            permLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
                     }
-                    if (hasVoice && !isRecording) {
-                        TextButton(
-                            onClick = { voicePlaying = true; val ok = recorder.play(voiceFile) { voicePlaying = false }; if (!ok) voicePlaying = false },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(if (voicePlaying) "⏹ Играет" else "▶ Слушать", maxLines = 1, softWrap = false) }
-                        TextButton(
-                            onClick = { voiceFile.delete(); hasVoice = false },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Red),
-                            modifier = Modifier.weight(0.6f)
-                        ) { Text("🗑", maxLines = 1, softWrap = false) }
-                    }
-                }
-                if (isRecording) {
-                    Text("🔴 Говорите... Нажмите «Стоп», когда закончите", fontSize = 11.sp, color = Red, fontWeight = FontWeight.SemiBold)
-                }
-                if (hasVoice && !isRecording) {
-                    Text("💡 Голос прозвучит в напоминании ПЕРЕД мелодией", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                )
+                Spacer(Modifier.height(8.dp))
+
                 OutlinedTextField(rawText, { rawText = it }, label = { Text("Вставьте текст сообщения (WhatsApp/Telegram)") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 6)
                 TextButton(onClick = {
                     val p = ZamerParser.parse(rawText)
@@ -209,14 +205,15 @@ fun ZamerFormDialog(
                     if (p.name.isNotBlank()) name = p.name
                     if (p.price.isNotBlank()) price = p.price
                     p.dateOffset?.let { off -> date = LocalDate.now().plusDays(off.toLong()) }
-                    if (p.timeStr.isNotBlank()) { try { time = LocalTime.parse(p.timeStr) } catch (e: Exception) { } }
+                    if (p.timeStr.isNotBlank()) {
+                        try { time = LocalTime.parse(p.timeStr) } catch (e: Exception) { }
+                    }
                 }) { Text("🧠 Разобрать текст и заполнить поля", color = Orange) }
 
-                // Кнопка удаления (если есть onDelete и existing != null)
                 if (existing != null && onDelete != null) {
                     Spacer(Modifier.height(8.dp))
                     Button(
-                        onClick = { if (isRecording) stopRec(); onDelete() },
+                        onClick = { onDelete() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Red),
                         shape = RoundedCornerShape(10.dp)
@@ -226,13 +223,30 @@ fun ZamerFormDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (isRecording) stopRec()
+                // Останавливаем запись, если идёт
                 val voiceFileFinal = if (voiceFile.exists() && voiceFile.length() > 0L) voiceFile.name else ""
-                onSave(Zamer(id = id, date = date, time = time, timeEnd = timeEnd.trim(), name = name.trim(), phone = phone.trim(), contactFrom = contactFrom.trim(), address = address.trim(), area = area.trim(), thickness = thickness.trim(), price = price.trim(), comment = comment.trim(), voiceFile = voiceFileFinal, status = status))
+                onSave(
+                    Zamer(
+                        id = id,
+                        date = date,
+                        time = time,
+                        timeEnd = timeEnd.trim(),
+                        name = name.trim(),
+                        phone = phone.trim(),
+                        contactFrom = contactFrom.trim(),
+                        address = address.trim(),
+                        area = area.trim(),
+                        thickness = thickness.trim(),
+                        price = price.trim(),
+                        comment = comment.trim(),
+                        voiceFile = voiceFileFinal,
+                        status = status
+                    )
+                )
             }) { Text("Сохранить") }
         },
         dismissButton = {
-            TextButton(onClick = { if (isRecording) stopRec(); onDismiss() }) { Text("Отмена") }
+            TextButton(onClick = { onDismiss() }) { Text("Отмена") }
         }
     )
 
@@ -241,32 +255,318 @@ fun ZamerFormDialog(
             onDismissRequest = { showDate = false },
             confirmButton = {
                 TextButton(onClick = {
-                    dateState.selectedDateMillis?.let { ms -> date = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate() }
+                    dateState.selectedDateMillis?.let { ms ->
+                        date = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
                     showDate = false
                 }) { Text("ОК") }
             }
         ) { DatePicker(state = dateState) }
     }
+
     if (showTime) {
         AlertDialog(
             onDismissRequest = { showTime = false },
             confirmButton = {
-                TextButton(onClick = { time = LocalTime.of(timeState.hour, timeState.minute); showTime = false }) { Text("ОК") }
+                TextButton(onClick = {
+                    time = LocalTime.of(timeState.hour, timeState.minute)
+                    showTime = false
+                }) { Text("ОК") }
             },
             dismissButton = { TextButton(onClick = { showTime = false }) { Text("Отмена") } },
             text = { TimePicker(state = timeState) }
         )
     }
+
     if (showTimeEnd) {
         AlertDialog(
             onDismissRequest = { showTimeEnd = false },
             confirmButton = {
-                TextButton(onClick = { timeEnd = LocalTime.of(timeEndState.hour, timeEndState.minute).format(T); showTimeEnd = false }) { Text("ОК") }
+                TextButton(onClick = {
+                    timeEnd = LocalTime.of(timeEndState.hour, timeEndState.minute).format(T)
+                    showTimeEnd = false
+                }) { Text("ОК") }
             },
-            dismissButton = { TextButton(onClick = { timeEnd = ""; showTimeEnd = false }) { Text("Сбросить") } },
+            dismissButton = {
+                TextButton(onClick = {
+                    timeEnd = ""
+                    showTimeEnd = false
+                }) { Text("Сбросить") }
+            },
             text = { TimePicker(state = timeEndState) }
         )
     }
+}
+
+@Composable
+private fun VoiceMessageRecorder(
+    recorder: VoiceRecorder,
+    voiceFile: File,
+    hasVoiceInitially: Boolean,
+    onDeleteVoice: () -> Unit,
+    onPermissionRequest: () -> Unit
+) {
+    var isRecording by remember { mutableStateOf(false) }
+    var recordSeconds by remember { mutableStateOf(0) }
+    var hasVoice by remember { mutableStateOf(hasVoiceInitially) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var playProgress by remember { mutableFloatStateOf(0f) }
+    var player by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Таймер записи
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            recordSeconds = 0
+            while (isRecording) {
+                delay(1000)
+                recordSeconds++
+            }
+        }
+    }
+
+    // Очистка плеера при уничтожении
+    DisposableEffect(Unit) {
+        onDispose {
+            player?.release()
+        }
+    }
+
+    fun startRecording() {
+        if (ContextCompat.checkSelfPermission(
+                LocalContext.current,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            onPermissionRequest()
+            return
+        }
+        recorder.start(voiceFile)
+        isRecording = true
+        recordSeconds = 0
+    }
+
+    fun stopRecording() {
+        recorder.stop()
+        isRecording = false
+        hasVoice = voiceFile.exists() && voiceFile.length() > 0L
+    }
+
+    fun togglePlayback() {
+        if (isPlaying) {
+            player?.pause()
+            isPlaying = false
+        } else {
+            if (player == null) {
+                val mp = MediaPlayer().apply {
+                    setDataSource(voiceFile.absolutePath)
+                    prepare()
+                    setOnCompletionListener {
+                        isPlaying = false
+                        playProgress = 0f
+                        it.release()
+                        player = null
+                    }
+                    setOnErrorListener { _, _, _ ->
+                        isPlaying = false
+                        playProgress = 0f
+                        release()
+                        player = null
+                        true
+                    }
+                }
+                player = mp
+            }
+            player?.start()
+            isPlaying = true
+            // Простая анимация прогресса воспроизведения
+            val duration = player?.duration ?: 0
+            if (duration > 0) {
+                LaunchedEffect(isPlaying) {
+                    while (isPlaying) {
+                        val current = player?.currentPosition ?: 0
+                        playProgress = current.toFloat() / duration
+                        delay(100)
+                    }
+                }
+            }
+        }
+    }
+
+    fun deleteVoice() {
+        player?.release()
+        player = null
+        isPlaying = false
+        isRecording = false
+        voiceFile.delete()
+        hasVoice = false
+        onDeleteVoice()
+    }
+
+    // Пульсация красной точки при записи
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        if (!hasVoice && !isRecording) {
+            // Кнопка записи: белый круг с красной точкой и микрофон рядом
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { startRecording() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(20.dp)) {
+                        drawCircle(color = Color.Red, radius = 7.dp.toPx(), center = center)
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Text("Нажмите для записи", fontSize = 13.sp, color = Color.White)
+            }
+        } else if (isRecording) {
+            // Идёт запись: красный квадрат + таймер + пульсация
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Red)
+                        .clickable { stopRecording() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(24.dp)) {
+                        drawRect(color = Color.White)
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = formatSeconds(recordSeconds),
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .graphicsLayer {
+                            scaleX = pulseScale
+                            scaleY = pulseScale
+                        }
+                        .background(Color.Red, CircleShape)
+                )
+            }
+        } else {
+            // Есть запись: плеер-сообщение
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xCC1E1E1E), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                // Волны (несколько полосок)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    repeat(5) { index ->
+                        val height = if (isPlaying) {
+                            // Анимация высоты полоски
+                            val wave = (playProgress * 5).toInt()
+                            (10 + (index + 1) * 3).dp
+                        } else {
+                            6.dp
+                        }
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(height)
+                                .background(Color.White, RoundedCornerShape(2.dp))
+                                .padding(horizontal = 1.dp)
+                        )
+                        if (index < 4) Spacer(Modifier.width(2.dp))
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                // Длительность
+                val duration = if (isPlaying) {
+                    val current = player?.currentPosition ?: 0
+                    formatSeconds(current / 1000)
+                } else {
+                    formatSeconds(recordSeconds)
+                }
+                Text(
+                    text = duration,
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+                Spacer(Modifier.weight(1f))
+
+                // Кнопка Play/Pause
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { togglePlayback() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isPlaying) {
+                        // Пауза: две полоски
+                        Row {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(12.dp)
+                                    .background(Color.Black)
+                            )
+                            Spacer(Modifier.width(3.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(12.dp)
+                                    .background(Color.Black)
+                            )
+                        }
+                    } else {
+                        // Play: треугольник
+                        Canvas(modifier = Modifier.size(16.dp)) {
+                            val path = Path().apply {
+                                moveTo(0f, 0f)
+                                lineTo(size.width, size.height / 2f)
+                                lineTo(0f, size.height)
+                                close()
+                            }
+                            drawPath(path, color = Color.Black)
+                        }
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                // Корзина
+                Text(
+                    text = "🗑",
+                    fontSize = 20.sp,
+                    modifier = Modifier
+                        .clickable { deleteVoice() }
+                        .padding(4.dp)
+                )
+            }
+        }
+    }
+}
+
+private fun formatSeconds(seconds: Int): String {
+    val minutes = seconds / 60
+    val secs = seconds % 60
+    return if (minutes > 0) "$minutes:${secs.toString().padStart(2, '0')}" else "0:${secs.toString().padStart(2, '0')}"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -279,6 +579,7 @@ fun RescheduleDialog(
     var showPicker by remember { mutableStateOf(false) }
     var confirmCancel by remember { mutableStateOf(false) }
     val pickerState = rememberDatePickerState()
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Перенести замер") },
@@ -296,12 +597,15 @@ fun RescheduleDialog(
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } }
     )
+
     if (showPicker) {
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { ms -> onMove(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()) }
+                    pickerState.selectedDateMillis?.let { ms ->
+                        onMove(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate())
+                    }
                     showPicker = false
                 }) { Text("ОК") }
             }
