@@ -17,11 +17,11 @@
         android:layout_height="wrap_content"
         android:text="План замеров"
         android:textColor="#FFFFFF"
-        android:textSize="14sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:padding="4dp"/>
+        android:padding="5dp"/>
 
     <!-- Карточки -->
 
@@ -32,7 +32,7 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <!-- Ряд 1 -->
+        <!-- ==================== РЯД 1 ==================== -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -49,20 +49,23 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="6dp"
+                android:padding="7dp"
                 android:layout_margin="2dp">
+
+                <!-- Время + микрофон -->
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t1_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="14sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"/>
 
                     <TextView
@@ -70,76 +73,96 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textSize="13sp"
-                        android:paddingStart="4dp"/>
+                        android:textSize="15sp"
+                        android:paddingStart="5dp"/>
+
                 </LinearLayout>
+
+                <!-- Имя -->
 
                 <TextView
                     android:id="@+id/t1_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
+
+                <!-- Источник -->
 
                 <TextView
                     android:id="@+id/t1_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
                     android:ellipsize="end"/>
+
+                <!-- Адрес -->
 
                 <TextView
                     android:id="@+id/t1_addr"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="12sp"
                     android:maxLines="2"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
+
+                <!-- Кнопки -->
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_height="46dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t1_call"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✆"
-                        android:textColor="#4CAF50"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Позвонить"
+                        android:textColor="#66BB6A"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t1_map"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="⌖"
-                        android:textColor="#1E88E5"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Карта"
+                        android:textColor="#42A5F5"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t1_done"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✔"
+                        android:text="Готово"
                         android:textColor="#81C784"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                 </LinearLayout>
 
             </LinearLayout>
+
 
             <!-- CARD 2 -->
 
@@ -150,20 +173,21 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="6dp"
+                android:padding="7dp"
                 android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t2_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="14sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"/>
 
                     <TextView
@@ -171,8 +195,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textSize="13sp"
-                        android:paddingStart="4dp"/>
+                        android:textSize="15sp"
+                        android:paddingStart="5dp"/>
+
                 </LinearLayout>
 
                 <TextView
@@ -180,16 +205,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
 
                 <TextView
                     android:id="@+id/t2_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
                     android:ellipsize="end"/>
 
@@ -198,45 +225,53 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="12sp"
                     android:maxLines="2"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_height="46dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t2_call"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✆"
-                        android:textColor="#4CAF50"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Позвонить"
+                        android:textColor="#66BB6A"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t2_map"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="⌖"
-                        android:textColor="#1E88E5"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Карта"
+                        android:textColor="#42A5F5"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t2_done"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✔"
+                        android:text="Готово"
                         android:textColor="#81C784"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                 </LinearLayout>
 
@@ -244,7 +279,8 @@
 
         </LinearLayout>
 
-        <!-- Ряд 2 -->
+
+        <!-- ==================== РЯД 2 ==================== -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -261,20 +297,21 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="6dp"
+                android:padding="7dp"
                 android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t3_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="14sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"/>
 
                     <TextView
@@ -282,8 +319,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textSize="13sp"
-                        android:paddingStart="4dp"/>
+                        android:textSize="15sp"
+                        android:paddingStart="5dp"/>
+
                 </LinearLayout>
 
                 <TextView
@@ -291,16 +329,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
 
                 <TextView
                     android:id="@+id/t3_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
                     android:ellipsize="end"/>
 
@@ -309,49 +349,58 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="12sp"
                     android:maxLines="2"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_height="46dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t3_call"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✆"
-                        android:textColor="#4CAF50"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Позвонить"
+                        android:textColor="#66BB6A"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t3_map"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="⌖"
-                        android:textColor="#1E88E5"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Карта"
+                        android:textColor="#42A5F5"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t3_done"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✔"
+                        android:text="Готово"
                         android:textColor="#81C784"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                 </LinearLayout>
 
             </LinearLayout>
+
 
             <!-- CARD 4 -->
 
@@ -362,20 +411,21 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="6dp"
+                android:padding="7dp"
                 android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t4_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="14sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"/>
 
                     <TextView
@@ -383,8 +433,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textSize="13sp"
-                        android:paddingStart="4dp"/>
+                        android:textSize="15sp"
+                        android:paddingStart="5dp"/>
+
                 </LinearLayout>
 
                 <TextView
@@ -392,16 +443,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="12sp"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
 
                 <TextView
                     android:id="@+id/t4_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
                     android:ellipsize="end"/>
 
@@ -410,45 +463,53 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="10sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="12sp"
                     android:maxLines="2"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingTop="2dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_height="46dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t4_call"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✆"
-                        android:textColor="#4CAF50"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Позвонить"
+                        android:textColor="#66BB6A"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t4_map"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="⌖"
-                        android:textColor="#1E88E5"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:text="Карта"
+                        android:textColor="#42A5F5"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                     <TextView
                         android:id="@+id/t4_done"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:text="✔"
+                        android:text="Готово"
                         android:textColor="#81C784"
-                        android:textSize="22sp"
-                        android:gravity="center"/>
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:padding="2dp"/>
 
                 </LinearLayout>
 
@@ -458,37 +519,39 @@
 
     </LinearLayout>
 
+
     <!-- Пагинация -->
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
         android:orientation="horizontal"
         android:gravity="center">
 
         <TextView
             android:id="@+id/btn_prev"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="◀"
             android:textColor="#FFAB91"
-            android:textSize="18sp"
+            android:textSize="22sp"
             android:gravity="center"
-            android:padding="6dp"/>
+            android:padding="4dp"/>
 
         <TextView
             android:id="@+id/btn_next"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="▶"
             android:textColor="#FFAB91"
-            android:textSize="18sp"
+            android:textSize="22sp"
             android:gravity="center"
-            android:padding="6dp"/>
+            android:padding="4dp"/>
 
     </LinearLayout>
+
 
     <!-- Пустое состояние -->
 
@@ -499,7 +562,7 @@
         android:layout_weight="1"
         android:text="Нет предстоящих замеров"
         android:textColor="#CCFFFFFF"
-        android:textSize="14sp"
+        android:textSize="15sp"
         android:gravity="center"
         android:visibility="gone"/>
 
