@@ -34,55 +34,82 @@ class ZamerWidget : AppWidgetProvider() {
                 ids.forEach { id -> ZamerWidget().updateWidget(context, mgr, id) }
             } catch (e: Exception) {
                 Log.e("ZamerWidget", "Ошибка refreshAll", e)
+                writeLog(context, "refreshAll exception: ${e.message}")
             }
         }
     }
 
+    private fun writeLog(context: Context, message: String) {
+        try {
+            val logFile = File(context.filesDir, "widget_log.txt")
+            logFile.appendText("${System.currentTimeMillis()}: $message\n")
+        } catch (e: Exception) {
+            Log.e("ZamerWidget", "Ошибка записи лога", e)
+        }
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (widgetId in appWidgetIds) {
-            updateWidget(context, appWidgetManager, widgetId)
+        writeLog(context, "onUpdate called, ids count=${appWidgetIds.size}")
+        try {
+            for (widgetId in appWidgetIds) {
+                writeLog(context, "onUpdate: updating widget $widgetId")
+                updateWidget(context, appWidgetManager, widgetId)
+            }
+        } catch (e: Exception) {
+            writeLog(context, "onUpdate exception: ${e.message}")
+            Log.e("ZamerWidget", "onUpdate exception", e)
         }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        when (intent.action) {
-            ACTION_NEXT -> {
-                val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                if (widgetId != -1) {
-                    val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
-                    rv.showNext(R.id.view_flipper)
-                    AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+        writeLog(context, "onReceive action=${intent.action}")
+        try {
+            when (intent.action) {
+                ACTION_NEXT -> {
+                    val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+                    writeLog(context, "ACTION_NEXT, widgetId=$widgetId")
+                    if (widgetId != -1) {
+                        val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
+                        rv.showNext(R.id.view_flipper)
+                        AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+                    }
                 }
-            }
-            ACTION_PREV -> {
-                val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                if (widgetId != -1) {
-                    val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
-                    rv.showPrevious(R.id.view_flipper)
-                    AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+                ACTION_PREV -> {
+                    val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+                    writeLog(context, "ACTION_PREV, widgetId=$widgetId")
+                    if (widgetId != -1) {
+                        val rv = RemoteViews(context.packageName, R.layout.zamer_widget)
+                        rv.showPrevious(R.id.view_flipper)
+                        AppWidgetManager.getInstance(context).updateAppWidget(widgetId, rv)
+                    }
                 }
-            }
-            ACTION_DONE -> {
-                val zamerId = intent.getLongExtra("zamer_id", -1L)
-                val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
-                if (zamerId != -1L) {
-                    val storage = Storage(context)
-                    val list = storage.load().toMutableList()
-                    val index = list.indexOfFirst { it.id == zamerId }
-                    if (index != -1) {
-                        list[index] = list[index].copy(status = ZamerStatus.DONE)
-                        storage.save(list)
-                        ReminderScheduler.cancel(context, zamerId)
-                        if (widgetId != -1) {
-                            val mgr = AppWidgetManager.getInstance(context)
-                            updateWidget(context, mgr, widgetId)
-                        } else {
-                            refreshAll(context)
+                ACTION_DONE -> {
+                    val zamerId = intent.getLongExtra("zamer_id", -1L)
+                    val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+                    writeLog(context, "ACTION_DONE, zamerId=$zamerId, widgetId=$widgetId")
+                    if (zamerId != -1L) {
+                        val storage = Storage(context)
+                        val list = storage.load().toMutableList()
+                        val index = list.indexOfFirst { it.id == zamerId }
+                        writeLog(context, "index=$index, list size=${list.size}")
+                        if (index != -1) {
+                            list[index] = list[index].copy(status = ZamerStatus.DONE)
+                            storage.save(list)
+                            ReminderScheduler.cancel(context, zamerId)
+                            if (widgetId != -1) {
+                                val mgr = AppWidgetManager.getInstance(context)
+                                updateWidget(context, mgr, widgetId)
+                            } else {
+                                refreshAll(context)
+                            }
                         }
                     }
                 }
             }
+        } catch (e: Exception) {
+            writeLog(context, "onReceive exception: ${e.message}")
+            Log.e("ZamerWidget", "onReceive exception", e)
         }
     }
 
@@ -94,73 +121,88 @@ class ZamerWidget : AppWidgetProvider() {
     }
 
     private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
-        val all = Storage(context).load()
-        val today = LocalDate.now()
-        val todayItems = all.filter { it.date == today && it.status == ZamerStatus.PLANNED }
-            .sortedBy { it.time }
-        val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
-            .sortedWith(compareBy({ it.date }, { it.time }))
-        val list = (todayItems + futureItems).distinctBy { it.id }
+        writeLog(context, "updateWidget started for widgetId=$widgetId")
+        try {
+            val all = Storage(context).load()
+            writeLog(context, "loaded ${all.size} zamers")
+            val today = LocalDate.now()
+            val todayItems = all.filter { it.date == today && it.status == ZamerStatus.PLANNED }
+                .sortedBy { it.time }
+            val futureItems = all.filter { it.status == ZamerStatus.PLANNED && it.date > today }
+                .sortedWith(compareBy({ it.date }, { it.time }))
+            val list = (todayItems + futureItems).distinctBy { it.id }
+            writeLog(context, "filtered list size=${list.size}")
 
-        val root = RemoteViews(context.packageName, R.layout.zamer_widget)
+            val root = RemoteViews(context.packageName, R.layout.zamer_widget)
 
-        val total = list.size
-        root.setTextViewText(R.id.w_title, "📏 План замеров · всего $total")
+            val total = list.size
+            root.setTextViewText(R.id.w_title, "📏 План замеров · всего $total")
+            writeLog(context, "title set")
 
-        if (total == 0) {
-            root.setViewVisibility(R.id.view_flipper, View.GONE)
-            root.setViewVisibility(R.id.btn_prev, View.GONE)
-            root.setViewVisibility(R.id.btn_next, View.GONE)
-            root.setViewVisibility(R.id.w_empty, View.VISIBLE)
-        } else {
-            root.setViewVisibility(R.id.w_empty, View.GONE)
-            root.setViewVisibility(R.id.view_flipper, View.VISIBLE)
-            root.setViewVisibility(R.id.btn_prev, View.VISIBLE)
-            root.setViewVisibility(R.id.btn_next, View.VISIBLE)
+            if (total == 0) {
+                root.setViewVisibility(R.id.view_flipper, View.GONE)
+                root.setViewVisibility(R.id.btn_prev, View.GONE)
+                root.setViewVisibility(R.id.btn_next, View.GONE)
+                root.setViewVisibility(R.id.w_empty, View.VISIBLE)
+                writeLog(context, "empty state set")
+            } else {
+                root.setViewVisibility(R.id.w_empty, View.GONE)
+                root.setViewVisibility(R.id.view_flipper, View.VISIBLE)
+                root.setViewVisibility(R.id.btn_prev, View.VISIBLE)
+                root.setViewVisibility(R.id.btn_next, View.VISIBLE)
 
-            // Очищаем ViewFlipper от старых страниц
-            root.removeAllViews(R.id.view_flipper)
+                // Очищаем ViewFlipper от старых страниц
+                root.removeAllViews(R.id.view_flipper)
+                writeLog(context, "view_flipper cleared")
 
-            val pageSize = 4
-            val pageCount = (total + pageSize - 1) / pageSize
+                val pageSize = 4
+                val pageCount = (total + pageSize - 1) / pageSize
+                writeLog(context, "pageCount=$pageCount")
 
-            for (page in 0 until pageCount) {
-                val pageRemoteViews = createPage(context, list, page, pageSize, widgetId)
-                root.addView(R.id.view_flipper, pageRemoteViews)
+                for (page in 0 until pageCount) {
+                    val pageRemoteViews = createPage(context, list, page, pageSize, widgetId)
+                    root.addView(R.id.view_flipper, pageRemoteViews)
+                    writeLog(context, "added page $page")
+                }
+
+                val prevIntent = PendingIntent.getBroadcast(
+                    context,
+                    widgetId * 10 + 1,
+                    Intent(context, ZamerWidget::class.java).apply {
+                        action = ACTION_PREV
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                root.setOnClickPendingIntent(R.id.btn_prev, prevIntent)
+
+                val nextIntent = PendingIntent.getBroadcast(
+                    context,
+                    widgetId * 10 + 2,
+                    Intent(context, ZamerWidget::class.java).apply {
+                        action = ACTION_NEXT
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                root.setOnClickPendingIntent(R.id.btn_next, nextIntent)
+                writeLog(context, "navigation intents set")
             }
 
-            val prevIntent = PendingIntent.getBroadcast(
+            val openAppIntent = PendingIntent.getActivity(
                 context,
-                widgetId * 10 + 1,
-                Intent(context, ZamerWidget::class.java).apply {
-                    action = ACTION_PREV
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-                },
+                0,
+                Intent(context, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            root.setOnClickPendingIntent(R.id.btn_prev, prevIntent)
+            root.setOnClickPendingIntent(R.id.w_root, openAppIntent)
 
-            val nextIntent = PendingIntent.getBroadcast(
-                context,
-                widgetId * 10 + 2,
-                Intent(context, ZamerWidget::class.java).apply {
-                    action = ACTION_NEXT
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
-                },
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            root.setOnClickPendingIntent(R.id.btn_next, nextIntent)
+            appWidgetManager.updateAppWidget(widgetId, root)
+            writeLog(context, "updateWidget finished successfully")
+        } catch (e: Exception) {
+            writeLog(context, "updateWidget exception: ${e.message}")
+            Log.e("ZamerWidget", "updateWidget exception", e)
         }
-
-        val openAppIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        root.setOnClickPendingIntent(R.id.w_root, openAppIntent)
-
-        appWidgetManager.updateAppWidget(widgetId, root)
     }
 
     private fun createPage(
@@ -170,25 +212,33 @@ class ZamerWidget : AppWidgetProvider() {
         pageSize: Int,
         widgetId: Int
     ): RemoteViews {
+        writeLog(context, "createPage page=$page")
         val pageRemoteViews = RemoteViews(context.packageName, R.layout.zamer_widget_page)
         val start = page * pageSize
         val end = minOf(start + pageSize, list.size)
+        writeLog(context, "createPage start=$start, end=$end")
 
         for (i in start until end) {
             val z = list[i]
-            when (i - start) {
-                0 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_from,
-                    R.id.t1_call, R.id.t1_map, R.id.t1_done, R.id.t1_mic, widgetId)
-                1 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_from,
-                    R.id.t2_call, R.id.t2_map, R.id.t2_done, R.id.t2_mic, widgetId)
-                2 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_from,
-                    R.id.t3_call, R.id.t3_map, R.id.t3_done, R.id.t3_mic, widgetId)
-                3 -> fillCard(pageRemoteViews, context, z,
-                    R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_from,
-                    R.id.t4_call, R.id.t4_map, R.id.t4_done, R.id.t4_mic, widgetId)
+            try {
+                when (i - start) {
+                    0 -> fillCard(pageRemoteViews, context, z,
+                        R.id.t1_time, R.id.t1_name, R.id.t1_addr, R.id.t1_from,
+                        R.id.t1_call, R.id.t1_map, R.id.t1_done, R.id.t1_mic, widgetId)
+                    1 -> fillCard(pageRemoteViews, context, z,
+                        R.id.t2_time, R.id.t2_name, R.id.t2_addr, R.id.t2_from,
+                        R.id.t2_call, R.id.t2_map, R.id.t2_done, R.id.t2_mic, widgetId)
+                    2 -> fillCard(pageRemoteViews, context, z,
+                        R.id.t3_time, R.id.t3_name, R.id.t3_addr, R.id.t3_from,
+                        R.id.t3_call, R.id.t3_map, R.id.t3_done, R.id.t3_mic, widgetId)
+                    3 -> fillCard(pageRemoteViews, context, z,
+                        R.id.t4_time, R.id.t4_name, R.id.t4_addr, R.id.t4_from,
+                        R.id.t4_call, R.id.t4_map, R.id.t4_done, R.id.t4_mic, widgetId)
+                }
+                writeLog(context, "fillCard for $i done")
+            } catch (e: Exception) {
+                writeLog(context, "fillCard exception for $i: ${e.message}")
+                Log.e("ZamerWidget", "fillCard exception", e)
             }
         }
 
@@ -201,7 +251,7 @@ class ZamerWidget : AppWidgetProvider() {
             }
             pageRemoteViews.setViewVisibility(cardId, View.GONE)
         }
-
+        writeLog(context, "createPage finished")
         return pageRemoteViews
     }
 
@@ -219,6 +269,7 @@ class ZamerWidget : AppWidgetProvider() {
         micId: Int,
         widgetId: Int
     ) {
+        writeLog(context, "fillCard for zamer ${z.id}")
         rv.setTextViewText(timeId, z.timeText())
         rv.setInt(timeId, "setTextColor", statusColor(z.status))
 
@@ -277,6 +328,7 @@ class ZamerWidget : AppWidgetProvider() {
 
         // Микрофон
         val voiceFile = File(context.filesDir, "voice_${z.id}.m4a")
+        writeLog(context, "voice file exists: ${voiceFile.exists()}")
         if (voiceFile.exists()) {
             val playIntent = PendingIntent.getService(
                 context,
@@ -291,5 +343,6 @@ class ZamerWidget : AppWidgetProvider() {
         } else {
             rv.setViewVisibility(micId, View.GONE)
         }
+        writeLog(context, "fillCard finished")
     }
 }
