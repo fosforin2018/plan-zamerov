@@ -232,7 +232,6 @@ class ZamerWidget : AppWidgetProvider() {
             rv.setViewVisibility(addrId, View.VISIBLE)
         } else rv.setViewVisibility(addrId, View.GONE)
 
-        // Строка "От кого"
         if (z.contactFrom.isNotBlank()) {
             rv.setTextViewText(fromId, "От: " + z.contactFrom)
             rv.setViewVisibility(fromId, View.VISIBLE)
@@ -276,7 +275,7 @@ class ZamerWidget : AppWidgetProvider() {
         rv.setOnClickPendingIntent(doneId, doneIntent)
         rv.setViewVisibility(doneId, View.VISIBLE)
 
-        // Микрофон (показываем только если есть голосовой файл)
+        // Микрофон
         val voiceFile = File(context.filesDir, "voice_${z.id}.m4a")
         if (voiceFile.exists()) {
             val playIntent = PendingIntent.getService(
