@@ -5,8 +5,14 @@ import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -414,8 +420,12 @@ private fun VoiceMessageRecorder(
     )
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        if (!hasVoice && !isRecording) {
-            // Кнопка записи
+        // Состояние "нет записи"
+        AnimatedVisibility(
+            visible = !hasVoice && !isRecording,
+            enter = fadeIn() + expandHorizontally(),
+            exit = fadeOut() + shrinkHorizontally()
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -432,12 +442,19 @@ private fun VoiceMessageRecorder(
                 Spacer(Modifier.width(8.dp))
                 Text("Нажмите для записи", fontSize = 13.sp, color = Color.White)
             }
-        } else if (isRecording) {
-            // Идёт запись
+        }
+
+        // Состояние "идёт запись"
+        AnimatedVisibility(
+            visible = isRecording,
+            enter = fadeIn() + expandHorizontally(),
+            exit = fadeOut() + shrinkHorizontally()
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .scale(pulseScale)
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color.Red)
                         .clickable { stopRecording() },
@@ -462,8 +479,14 @@ private fun VoiceMessageRecorder(
                         .background(Color.Red, CircleShape)
                 )
             }
-        } else {
-            // Плеер-сообщение
+        }
+
+        // Плеер
+        AnimatedVisibility(
+            visible = hasVoice && !isRecording,
+            enter = fadeIn() + expandHorizontally(),
+            exit = fadeOut() + shrinkHorizontally()
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -471,14 +494,20 @@ private fun VoiceMessageRecorder(
                     .background(Color(0xCC1E1E1E), RoundedCornerShape(16.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                // Волны
+                // Анимированные волны
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     repeat(5) { index ->
-                        val height = if (isPlaying) {
-                            (10 + (index + 1) * 3).dp
+                        val targetHeight = if (isPlaying) {
+                            // Каждая полоска "танцует" в зависимости от прогресса
+                            val wave = (playProgress * 10).toInt()
+                            (10 + ((index + wave) % 4) * 4).dp
                         } else {
                             6.dp
                         }
+                        val height by animateDpAsState(
+                            targetValue = targetHeight,
+                            animationSpec = tween(durationMillis = 300)
+                        )
                         Box(
                             modifier = Modifier
                                 .width(4.dp)
@@ -504,7 +533,7 @@ private fun VoiceMessageRecorder(
                 )
                 Spacer(Modifier.weight(1f))
 
-                // Play/Pause
+                // Кнопка Play/Pause с анимацией иконки
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -513,36 +542,37 @@ private fun VoiceMessageRecorder(
                         .clickable { togglePlayback() },
                     contentAlignment = Alignment.Center
                 ) {
-                    if (isPlaying) {
-                        Row {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(12.dp)
-                                    .background(Color.Black)
-                            )
-                            Spacer(Modifier.width(3.dp))
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(12.dp)
-                                    .background(Color.Black)
-                            )
-                        }
-                    } else {
-                        Canvas(modifier = Modifier.size(16.dp)) {
-                            val path = Path().apply {
-                                moveTo(0f, 0f)
-                                lineTo(size.width, size.height / 2f)
-                                lineTo(0f, size.height)
-                                close()
+                    Crossfade(targetState = isPlaying, animationSpec = tween(200)) { playing ->
+                        if (playing) {
+                            Row {
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .height(12.dp)
+                                        .background(Color.Black)
+                                )
+                                Spacer(Modifier.width(3.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .width(3.dp)
+                                        .height(12.dp)
+                                        .background(Color.Black)
+                                )
                             }
-                            drawPath(path, color = Color.Black)
+                        } else {
+                            Canvas(modifier = Modifier.size(16.dp)) {
+                                val path = Path().apply {
+                                    moveTo(0f, 0f)
+                                    lineTo(size.width, size.height / 2f)
+                                    lineTo(0f, size.height)
+                                    close()
+                                }
+                                drawPath(path, color = Color.Black)
+                            }
                         }
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                // Корзина
                 Text(
                     text = "🗑",
                     fontSize = 20.sp,
