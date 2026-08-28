@@ -1,21 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_tile_bg"
-    android:padding="8dp">
+    android:padding="8dp"
+    android:background="@drawable/widget_tile_bg">
+
+    <!-- Заголовок -->
 
     <TextView
         android:id="@+id/w_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="📏 План замеров"
+        android:text="План замеров"
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:paddingBottom="4dp" />
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:padding="4dp"/>
+
+    <!-- Карточки -->
 
     <LinearLayout
         android:id="@+id/cards_container"
@@ -25,50 +33,45 @@
         android:orientation="vertical">
 
         <!-- Ряд 1 -->
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- Карточка 1 -->
+            <!-- CARD 1 -->
+
             <LinearLayout
                 android:id="@+id/card_1"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="8dp"
-                android:layout_margin="4dp">
+                android:padding="6dp"
+                android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t1_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
 
                     <TextView
                         android:id="@+id/t1_mic"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textColor="#FFAB91"
-                        android:textSize="16sp"
-                        android:padding="2dp" />
+                        android:textSize="13sp"
+                        android:paddingStart="4dp"/>
                 </LinearLayout>
 
                 <TextView
@@ -76,108 +79,100 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t1_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t1_addr"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="4dp">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t1_call"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✆"
                         android:textColor="#4CAF50"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t1_map"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="⌖"
                         android:textColor="#1E88E5"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t1_done"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✔"
                         android:textColor="#81C784"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
+
                 </LinearLayout>
+
             </LinearLayout>
 
-            <!-- Карточка 2 -->
+            <!-- CARD 2 -->
+
             <LinearLayout
                 android:id="@+id/card_2"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="8dp"
-                android:layout_margin="4dp">
+                android:padding="6dp"
+                android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t2_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
 
                     <TextView
                         android:id="@+id/t2_mic"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textColor="#FFAB91"
-                        android:textSize="16sp"
-                        android:padding="2dp" />
+                        android:textSize="13sp"
+                        android:paddingStart="4dp"/>
                 </LinearLayout>
 
                 <TextView
@@ -185,116 +180,110 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t2_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t2_addr"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="4dp">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t2_call"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✆"
                         android:textColor="#4CAF50"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t2_map"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="⌖"
                         android:textColor="#1E88E5"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t2_done"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✔"
                         android:textColor="#81C784"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
+
                 </LinearLayout>
+
             </LinearLayout>
+
         </LinearLayout>
 
         <!-- Ряд 2 -->
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- Карточка 3 -->
+            <!-- CARD 3 -->
+
             <LinearLayout
                 android:id="@+id/card_3"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="8dp"
-                android:layout_margin="4dp">
+                android:padding="6dp"
+                android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t3_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
 
                     <TextView
                         android:id="@+id/t3_mic"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textColor="#FFAB91"
-                        android:textSize="16sp"
-                        android:padding="2dp" />
+                        android:textSize="13sp"
+                        android:paddingStart="4dp"/>
                 </LinearLayout>
 
                 <TextView
@@ -302,108 +291,100 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t3_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t3_addr"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="4dp">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t3_call"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✆"
                         android:textColor="#4CAF50"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t3_map"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="⌖"
                         android:textColor="#1E88E5"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t3_done"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✔"
                         android:textColor="#81C784"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
+
                 </LinearLayout>
+
             </LinearLayout>
 
-            <!-- Карточка 4 -->
+            <!-- CARD 4 -->
+
             <LinearLayout
                 android:id="@+id/card_4"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="8dp"
-                android:layout_margin="4dp">
+                android:padding="6dp"
+                android:layout_margin="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t4_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FF7043"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
 
                     <TextView
                         android:id="@+id/t4_mic"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🎤"
-                        android:textColor="#FFAB91"
-                        android:textSize="16sp"
-                        android:padding="2dp" />
+                        android:textSize="13sp"
+                        android:paddingStart="4dp"/>
                 </LinearLayout>
 
                 <TextView
@@ -411,73 +392,74 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t4_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <TextView
                     android:id="@+id/t4_addr"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
                     android:textColor="#B3FFFFFF"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
                     android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="4dp">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:id="@+id/t4_call"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✆"
                         android:textColor="#4CAF50"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t4_map"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="⌖"
                         android:textColor="#1E88E5"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
 
                     <TextView
                         android:id="@+id/t4_done"
                         android:layout_width="0dp"
-                        android:layout_weight="1"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="✔"
                         android:textColor="#81C784"
-                        android:textSize="28sp"
-                        android:gravity="center"
-                        android:padding="4dp" />
+                        android:textSize="22sp"
+                        android:gravity="center"/>
+
                 </LinearLayout>
+
             </LinearLayout>
+
         </LinearLayout>
+
     </LinearLayout>
 
-    <!-- Кнопки пагинации -->
+    <!-- Пагинация -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -486,22 +468,29 @@
 
         <TextView
             android:id="@+id/btn_prev"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="◀"
             android:textColor="#FFAB91"
             android:textSize="18sp"
-            android:padding="8dp" />
+            android:gravity="center"
+            android:padding="6dp"/>
 
         <TextView
             android:id="@+id/btn_next"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="▶"
             android:textColor="#FFAB91"
             android:textSize="18sp"
-            android:padding="8dp" />
+            android:gravity="center"
+            android:padding="6dp"/>
+
     </LinearLayout>
+
+    <!-- Пустое состояние -->
 
     <TextView
         android:id="@+id/w_empty"
@@ -512,5 +501,6 @@
         android:textColor="#CCFFFFFF"
         android:textSize="14sp"
         android:gravity="center"
-        android:visibility="gone" />
+        android:visibility="gone"/>
+
 </LinearLayout>
