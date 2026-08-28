@@ -130,6 +130,7 @@ fun ZamerFormDialog(
                     }
                 }
 
+                // Поле "От кого" с выпадающим списком
                 var expanded by remember { mutableStateOf(false) }
                 Box {
                     OutlinedTextField(
@@ -309,12 +310,27 @@ private fun VoiceMessageRecorder(
     var playProgress by remember { mutableFloatStateOf(0f) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
 
+    // Таймер записи
     LaunchedEffect(isRecording) {
         if (isRecording) {
             recordSeconds = 0
             while (isRecording) {
                 delay(1000)
                 recordSeconds++
+            }
+        }
+    }
+
+    // Отслеживание прогресса воспроизведения
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            val duration = player?.duration ?: 0
+            if (duration > 0) {
+                while (isPlaying) {
+                    val current = player?.currentPosition ?: 0
+                    playProgress = current.toFloat() / duration
+                    delay(100)
+                }
             }
         }
     }
@@ -372,16 +388,6 @@ private fun VoiceMessageRecorder(
             }
             player?.start()
             isPlaying = true
-            val duration = player?.duration ?: 0
-            if (duration > 0) {
-                LaunchedEffect(isPlaying) {
-                    while (isPlaying) {
-                        val current = player?.currentPosition ?: 0
-                        playProgress = current.toFloat() / duration
-                        delay(100)
-                    }
-                }
-            }
         }
     }
 
@@ -395,6 +401,7 @@ private fun VoiceMessageRecorder(
         onDeleteVoice()
     }
 
+    // Пульсация при записи
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -408,6 +415,7 @@ private fun VoiceMessageRecorder(
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         if (!hasVoice && !isRecording) {
+            // Кнопка записи
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -425,6 +433,7 @@ private fun VoiceMessageRecorder(
                 Text("Нажмите для записи", fontSize = 13.sp, color = Color.White)
             }
         } else if (isRecording) {
+            // Идёт запись
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -454,6 +463,7 @@ private fun VoiceMessageRecorder(
                 )
             }
         } else {
+            // Плеер-сообщение
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -461,6 +471,7 @@ private fun VoiceMessageRecorder(
                     .background(Color(0xCC1E1E1E), RoundedCornerShape(16.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
+                // Волны
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     repeat(5) { index ->
                         val height = if (isPlaying) {
@@ -479,6 +490,7 @@ private fun VoiceMessageRecorder(
                     }
                 }
                 Spacer(Modifier.width(8.dp))
+                // Таймер
                 val duration = if (isPlaying) {
                     val current = player?.currentPosition ?: 0
                     formatSeconds(current / 1000)
@@ -492,6 +504,7 @@ private fun VoiceMessageRecorder(
                 )
                 Spacer(Modifier.weight(1f))
 
+                // Play/Pause
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -529,6 +542,7 @@ private fun VoiceMessageRecorder(
                     }
                 }
                 Spacer(Modifier.width(8.dp))
+                // Корзина
                 Text(
                     text = "🗑",
                     fontSize = 20.sp,
