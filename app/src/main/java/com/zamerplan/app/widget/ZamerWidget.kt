@@ -19,6 +19,16 @@ import com.zamerplan.app.model.ZamerStatus
 import java.io.File
 import java.time.LocalDate
 
+// Функция логирования на верхнем уровне
+private fun writeLog(context: Context, message: String) {
+    try {
+        val logFile = File(context.filesDir, "widget_log.txt")
+        logFile.appendText("${System.currentTimeMillis()}: $message\n")
+    } catch (e: Exception) {
+        Log.e("ZamerWidget", "Ошибка записи лога", e)
+    }
+}
+
 class ZamerWidget : AppWidgetProvider() {
 
     companion object {
@@ -38,15 +48,6 @@ class ZamerWidget : AppWidgetProvider() {
                 Log.e("ZamerWidget", "Ошибка refreshAll", e)
                 writeLog(context, "refreshAll exception: ${e.message}")
             }
-        }
-    }
-
-    private fun writeLog(context: Context, message: String) {
-        try {
-            val logFile = File(context.filesDir, "widget_log.txt")
-            logFile.appendText("${System.currentTimeMillis()}: $message\n")
-        } catch (e: Exception) {
-            Log.e("ZamerWidget", "Ошибка записи лога", e)
         }
     }
 
