@@ -6,27 +6,31 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="8dp"
+    android:padding="6dp"
     android:background="@drawable/widget_tile_bg">
 
-    <!-- ==================== HEADER ==================== -->
+    <!-- ========================================================= -->
+    <!-- HEADER                                                     -->
+    <!-- ========================================================= -->
 
     <TextView
         android:id="@+id/w_title"
         android:layout_width="match_parent"
-        android:layout_height="42dp"
-        android:text="📏 План замеров · 2"
+        android:layout_height="38dp"
+        android:text="📏 План замеров"
         android:textColor="#FFFFFF"
         android:textSize="17sp"
         android:textStyle="bold"
         android:gravity="center_vertical"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
         android:maxLines="1"
-        android:ellipsize="end"/>
+        android:ellipsize="end" />
 
 
-    <!-- ==================== CARDS ==================== -->
+    <!-- ========================================================= -->
+    <!-- CARDS                                                      -->
+    <!-- ========================================================= -->
 
     <LinearLayout
         android:id="@+id/cards_container"
@@ -36,7 +40,9 @@
         android:orientation="vertical">
 
 
-        <!-- ==================== ROW 1 ==================== -->
+        <!-- ===================================================== -->
+        <!-- ROW 1                                                   -->
+        <!-- ===================================================== -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -45,47 +51,51 @@
             android:orientation="horizontal">
 
 
-            <!-- ================= CARD 1 ================= -->
+            <!-- ================================================= -->
+            <!-- CARD 1                                               -->
+            <!-- ================================================= -->
 
             <LinearLayout
                 android:id="@+id/card_1"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:padding="9dp"
                 android:orientation="vertical"
-                android:background="@drawable/widget_card_bg"
-                android:padding="10dp"
-                android:layout_margin="2dp">
+                android:background="@drawable/widget_card_bg">
 
 
                 <!-- TIME + MICROPHONE -->
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="62dp">
+                    android:layout_height="58dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t1_time"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
+                        android:layout_weight="1"
                         android:textColor="#FF4D1C"
                         android:textSize="23sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
 
                     <ImageView
                         android:id="@+id/t1_mic"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:padding="9dp"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:padding="10dp"
                         android:src="@drawable/ic_mic_widget"
                         android:background="@drawable/widget_mic_bg"
-                        android:contentDescription="Голосовая заметка"/>
+                        android:contentDescription="Голосовая заметка" />
 
-                </RelativeLayout>
+                </LinearLayout>
 
 
                 <!-- NAME -->
@@ -100,7 +110,7 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:paddingTop="2dp"
-                    android:paddingBottom="4dp"/>
+                    android:paddingBottom="4dp" />
 
 
                 <!-- SOURCE -->
@@ -113,7 +123,7 @@
                     android:textSize="14sp"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingBottom="5dp"/>
+                    android:paddingBottom="4dp" />
 
 
                 <!-- ADDRESS -->
@@ -129,107 +139,112 @@
                     android:ellipsize="end"
                     android:gravity="top"
                     android:paddingTop="2dp"
-                    android:paddingBottom="7dp"/>
+                    android:paddingBottom="6dp" />
 
 
                 <!-- DIVIDER -->
 
-                <View
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#66FFFFFF"/>
+                    android:background="#66FFFFFF"
+                    android:text="" />
 
 
-                <!-- ACTION BUTTONS -->
+                <!-- BUTTONS -->
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center"
-                    android:paddingTop="7dp">
+                    android:gravity="center_vertical"
+                    android:paddingTop="6dp">
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t1_call"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginEnd="5dp"
-                        android:padding="13dp"
+                        android:layout_marginEnd="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_phone_widget"
                         android:background="@drawable/widget_call_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Позвонить"/>
+                        android:contentDescription="Позвонить" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t1_map"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
                         android:layout_marginStart="2dp"
                         android:layout_marginEnd="2dp"
-                        android:padding="13dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_location_widget"
                         android:background="@drawable/widget_map_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Карта"/>
+                        android:contentDescription="Карта" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t1_done"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginStart="5dp"
-                        android:padding="13dp"
+                        android:layout_marginStart="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_check_widget"
                         android:background="@drawable/widget_done_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Готово"/>
+                        android:contentDescription="Готово" />
 
                 </LinearLayout>
 
             </LinearLayout>
 
 
-            <!-- ================= CARD 2 ================= -->
+            <!-- ================================================= -->
+            <!-- CARD 2                                               -->
+            <!-- ================================================= -->
 
             <LinearLayout
                 android:id="@+id/card_2"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:padding="9dp"
                 android:orientation="vertical"
-                android:background="@drawable/widget_card_bg"
-                android:padding="10dp"
-                android:layout_margin="2dp">
+                android:background="@drawable/widget_card_bg">
 
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="62dp">
+                    android:layout_height="58dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t2_time"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
+                        android:layout_weight="1"
                         android:textColor="#FF4D1C"
                         android:textSize="23sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
 
                     <ImageView
                         android:id="@+id/t2_mic"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:padding="9dp"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:padding="10dp"
                         android:src="@drawable/ic_mic_widget"
                         android:background="@drawable/widget_mic_bg"
-                        android:contentDescription="Голосовая заметка"/>
+                        android:contentDescription="Голосовая заметка" />
 
-                </RelativeLayout>
+                </LinearLayout>
 
 
                 <TextView
@@ -242,7 +257,7 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:paddingTop="2dp"
-                    android:paddingBottom="4dp"/>
+                    android:paddingBottom="4dp" />
 
 
                 <TextView
@@ -253,7 +268,7 @@
                     android:textSize="14sp"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingBottom="5dp"/>
+                    android:paddingBottom="4dp" />
 
 
                 <TextView
@@ -267,58 +282,59 @@
                     android:ellipsize="end"
                     android:gravity="top"
                     android:paddingTop="2dp"
-                    android:paddingBottom="7dp"/>
+                    android:paddingBottom="6dp" />
 
 
-                <View
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#66FFFFFF"/>
+                    android:background="#66FFFFFF"
+                    android:text="" />
 
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center"
-                    android:paddingTop="7dp">
+                    android:gravity="center_vertical"
+                    android:paddingTop="6dp">
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t2_call"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginEnd="5dp"
-                        android:padding="13dp"
+                        android:layout_marginEnd="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_phone_widget"
                         android:background="@drawable/widget_call_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Позвонить"/>
+                        android:contentDescription="Позвонить" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t2_map"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
                         android:layout_marginStart="2dp"
                         android:layout_marginEnd="2dp"
-                        android:padding="13dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_location_widget"
                         android:background="@drawable/widget_map_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Карта"/>
+                        android:contentDescription="Карта" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t2_done"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginStart="5dp"
-                        android:padding="13dp"
+                        android:layout_marginStart="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_check_widget"
                         android:background="@drawable/widget_done_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Готово"/>
+                        android:contentDescription="Готово" />
 
                 </LinearLayout>
 
@@ -327,7 +343,9 @@
         </LinearLayout>
 
 
-        <!-- ==================== ROW 2 ==================== -->
+        <!-- ===================================================== -->
+        <!-- ROW 2                                                   -->
+        <!-- ===================================================== -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -336,44 +354,49 @@
             android:orientation="horizontal">
 
 
-            <!-- ================= CARD 3 ================= -->
+            <!-- ================================================= -->
+            <!-- CARD 3                                               -->
+            <!-- ================================================= -->
 
             <LinearLayout
                 android:id="@+id/card_3"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:padding="9dp"
                 android:orientation="vertical"
-                android:background="@drawable/widget_card_bg"
-                android:padding="10dp"
-                android:layout_margin="2dp">
+                android:background="@drawable/widget_card_bg">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="62dp">
+                    android:layout_height="58dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t3_time"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
+                        android:layout_weight="1"
                         android:textColor="#FF4D1C"
                         android:textSize="23sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
 
                     <ImageView
                         android:id="@+id/t3_mic"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:padding="9dp"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:padding="10dp"
                         android:src="@drawable/ic_mic_widget"
                         android:background="@drawable/widget_mic_bg"
-                        android:contentDescription="Голосовая заметка"/>
+                        android:contentDescription="Голосовая заметка" />
 
-                </RelativeLayout>
+                </LinearLayout>
+
 
                 <TextView
                     android:id="@+id/t3_name"
@@ -385,7 +408,8 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:paddingTop="2dp"
-                    android:paddingBottom="4dp"/>
+                    android:paddingBottom="4dp" />
+
 
                 <TextView
                     android:id="@+id/t3_from"
@@ -395,7 +419,8 @@
                     android:textSize="14sp"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingBottom="5dp"/>
+                    android:paddingBottom="4dp" />
+
 
                 <TextView
                     android:id="@+id/t3_addr"
@@ -408,100 +433,108 @@
                     android:ellipsize="end"
                     android:gravity="top"
                     android:paddingTop="2dp"
-                    android:paddingBottom="7dp"/>
+                    android:paddingBottom="6dp" />
 
-                <View
+
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#66FFFFFF"/>
+                    android:background="#66FFFFFF"
+                    android:text="" />
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center"
-                    android:paddingTop="7dp">
+                    android:gravity="center_vertical"
+                    android:paddingTop="6dp">
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t3_call"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginEnd="5dp"
-                        android:padding="13dp"
+                        android:layout_marginEnd="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_phone_widget"
                         android:background="@drawable/widget_call_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Позвонить"/>
+                        android:contentDescription="Позвонить" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t3_map"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
                         android:layout_marginStart="2dp"
                         android:layout_marginEnd="2dp"
-                        android:padding="13dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_location_widget"
                         android:background="@drawable/widget_map_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Карта"/>
+                        android:contentDescription="Карта" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t3_done"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginStart="5dp"
-                        android:padding="13dp"
+                        android:layout_marginStart="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_check_widget"
                         android:background="@drawable/widget_done_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Готово"/>
+                        android:contentDescription="Готово" />
 
                 </LinearLayout>
 
             </LinearLayout>
 
 
-            <!-- ================= CARD 4 ================= -->
+            <!-- ================================================= -->
+            <!-- CARD 4                                               -->
+            <!-- ================================================= -->
 
             <LinearLayout
                 android:id="@+id/card_4"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:layout_margin="2dp"
+                android:padding="9dp"
                 android:orientation="vertical"
-                android:background="@drawable/widget_card_bg"
-                android:padding="10dp"
-                android:layout_margin="2dp">
+                android:background="@drawable/widget_card_bg">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="62dp">
+                    android:layout_height="58dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/t4_time"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_centerVertical="true"
+                        android:layout_weight="1"
                         android:textColor="#FF4D1C"
                         android:textSize="23sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold"
+                        android:gravity="center_vertical"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
 
                     <ImageView
                         android:id="@+id/t4_mic"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:padding="9dp"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:padding="10dp"
                         android:src="@drawable/ic_mic_widget"
                         android:background="@drawable/widget_mic_bg"
-                        android:contentDescription="Голосовая заметка"/>
+                        android:contentDescription="Голосовая заметка" />
 
-                </RelativeLayout>
+                </LinearLayout>
+
 
                 <TextView
                     android:id="@+id/t4_name"
@@ -513,7 +546,8 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:paddingTop="2dp"
-                    android:paddingBottom="4dp"/>
+                    android:paddingBottom="4dp" />
+
 
                 <TextView
                     android:id="@+id/t4_from"
@@ -523,7 +557,8 @@
                     android:textSize="14sp"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingBottom="5dp"/>
+                    android:paddingBottom="4dp" />
+
 
                 <TextView
                     android:id="@+id/t4_addr"
@@ -536,56 +571,59 @@
                     android:ellipsize="end"
                     android:gravity="top"
                     android:paddingTop="2dp"
-                    android:paddingBottom="7dp"/>
+                    android:paddingBottom="6dp" />
 
-                <View
+
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#66FFFFFF"/>
+                    android:background="#66FFFFFF"
+                    android:text="" />
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center"
-                    android:paddingTop="7dp">
+                    android:gravity="center_vertical"
+                    android:paddingTop="6dp">
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t4_call"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginEnd="5dp"
-                        android:padding="13dp"
+                        android:layout_marginEnd="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_phone_widget"
                         android:background="@drawable/widget_call_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Позвонить"/>
+                        android:contentDescription="Позвонить" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t4_map"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
                         android:layout_marginStart="2dp"
                         android:layout_marginEnd="2dp"
-                        android:padding="13dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_location_widget"
                         android:background="@drawable/widget_map_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Карта"/>
+                        android:contentDescription="Карта" />
 
-                    <ImageButton
+                    <ImageView
                         android:id="@+id/t4_done"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:layout_marginStart="5dp"
-                        android:padding="13dp"
+                        android:layout_marginStart="4dp"
+                        android:padding="12dp"
                         android:src="@drawable/ic_check_widget"
                         android:background="@drawable/widget_done_button"
                         android:scaleType="centerInside"
-                        android:contentDescription="Готово"/>
+                        android:contentDescription="Готово" />
 
                 </LinearLayout>
 
@@ -596,74 +634,85 @@
     </LinearLayout>
 
 
-    <!-- ==================== PAGINATION ==================== -->
+    <!-- ========================================================= -->
+    <!-- PAGINATION                                                  -->
+    <!-- ========================================================= -->
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="64dp"
         android:orientation="horizontal"
-        android:gravity="center">
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
 
         <TextView
             android:id="@+id/btn_prev"
-            android:layout_width="64dp"
-            android:layout_height="44dp"
+            android:layout_width="58dp"
+            android:layout_height="54dp"
             android:text="‹"
             android:textColor="#FF7A35"
-            android:textSize="38sp"
-            android:textStyle="normal"
+            android:textSize="42sp"
             android:gravity="center"
-            android:includeFontPadding="false"/>
+            android:includeFontPadding="false"
+            android:background="@drawable/widget_nav_button" />
 
-        <Space
+
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"/>
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center">
 
-        <TextView
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_margin="5dp"
-            android:background="@drawable/widget_dot_active"/>
+            <TextView
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_margin="6dp"
+                android:background="@drawable/widget_dot_active"
+                android:text="" />
 
-        <TextView
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_margin="5dp"
-            android:background="@drawable/widget_dot"/>
+            <TextView
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_margin="6dp"
+                android:background="@drawable/widget_dot"
+                android:text="" />
 
-        <TextView
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_margin="5dp"
-            android:background="@drawable/widget_dot"/>
+            <TextView
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_margin="6dp"
+                android:background="@drawable/widget_dot"
+                android:text="" />
 
-        <TextView
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_margin="5dp"
-            android:background="@drawable/widget_dot"/>
+            <TextView
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_margin="6dp"
+                android:background="@drawable/widget_dot"
+                android:text="" />
 
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"/>
+        </LinearLayout>
+
 
         <TextView
             android:id="@+id/btn_next"
-            android:layout_width="64dp"
-            android:layout_height="44dp"
+            android:layout_width="58dp"
+            android:layout_height="54dp"
             android:text="›"
             android:textColor="#FF7A35"
-            android:textSize="38sp"
-            android:textStyle="normal"
+            android:textSize="42sp"
             android:gravity="center"
-            android:includeFontPadding="false"/>
+            android:includeFontPadding="false"
+            android:background="@drawable/widget_nav_button" />
 
     </LinearLayout>
 
 
-    <!-- ==================== EMPTY ==================== -->
+    <!-- ========================================================= -->
+    <!-- EMPTY                                                      -->
+    <!-- ========================================================= -->
 
     <TextView
         android:id="@+id/w_empty"
@@ -674,6 +723,6 @@
         android:textColor="#CCFFFFFF"
         android:textSize="16sp"
         android:gravity="center"
-        android:visibility="gone"/>
+        android:visibility="gone" />
 
 </LinearLayout>
