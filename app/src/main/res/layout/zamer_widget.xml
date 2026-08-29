@@ -9,21 +9,24 @@
     android:padding="8dp"
     android:background="@drawable/widget_tile_bg">
 
-    <!-- Заголовок -->
+    <!-- ==================== HEADER ==================== -->
 
     <TextView
         android:id="@+id/w_title"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="План замеров"
+        android:layout_height="42dp"
+        android:text="📏 План замеров · 2"
         android:textColor="#FFFFFF"
-        android:textSize="16sp"
+        android:textSize="17sp"
         android:textStyle="bold"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
         android:maxLines="1"
-        android:ellipsize="end"
-        android:padding="5dp"/>
+        android:ellipsize="end"/>
 
-    <!-- Карточки -->
+
+    <!-- ==================== CARDS ==================== -->
 
     <LinearLayout
         android:id="@+id/cards_container"
@@ -32,7 +35,8 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <!-- ==================== РЯД 1 ==================== -->
+
+        <!-- ==================== ROW 1 ==================== -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -40,7 +44,8 @@
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- CARD 1 -->
+
+            <!-- ================= CARD 1 ================= -->
 
             <LinearLayout
                 android:id="@+id/card_1"
@@ -49,122 +54,144 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="7dp"
+                android:padding="10dp"
                 android:layout_margin="2dp">
 
-                <!-- Время + микрофон -->
 
-                <LinearLayout
+                <!-- TIME + MICROPHONE -->
+
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="62dp">
 
                     <TextView
                         android:id="@+id/t1_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#FF7043"
-                        android:textSize="17sp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:textColor="#FF4D1C"
+                        android:textSize="23sp"
                         android:textStyle="bold"/>
 
-                    <TextView
+                    <ImageView
                         android:id="@+id/t1_mic"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎤"
-                        android:textSize="15sp"
-                        android:paddingStart="5dp"/>
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_mic_widget"
+                        android:background="@drawable/widget_mic_bg"
+                        android:contentDescription="Голосовая заметка"/>
 
-                </LinearLayout>
+                </RelativeLayout>
 
-                <!-- Имя -->
+
+                <!-- NAME -->
 
                 <TextView
                     android:id="@+id/t1_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="19sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:paddingTop="2dp"
+                    android:paddingBottom="4dp"/>
 
-                <!-- Источник -->
+
+                <!-- SOURCE -->
 
                 <TextView
                     android:id="@+id/t1_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="12sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="14sp"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingBottom="5dp"/>
 
-                <!-- Адрес -->
+
+                <!-- ADDRESS -->
 
                 <TextView
                     android:id="@+id/t1_addr"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#D0FFFFFF"
-                    android:textSize="12sp"
-                    android:maxLines="2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:maxLines="3"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:gravity="top"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="7dp"/>
 
-                <!-- Кнопки -->
+
+                <!-- DIVIDER -->
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#66FFFFFF"/>
+
+
+                <!-- ACTION BUTTONS -->
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="46dp"
+                    android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center"
+                    android:paddingTop="7dp">
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t1_call"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Позвонить"
-                        android:textColor="#66BB6A"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginEnd="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_phone_widget"
+                        android:background="@drawable/widget_call_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Позвонить"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t1_map"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Карта"
-                        android:textColor="#42A5F5"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="2dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_location_widget"
+                        android:background="@drawable/widget_map_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Карта"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t1_done"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Готово"
-                        android:textColor="#81C784"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_check_widget"
+                        android:background="@drawable/widget_done_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Готово"/>
 
                 </LinearLayout>
 
             </LinearLayout>
 
 
-            <!-- CARD 2 -->
+            <!-- ================= CARD 2 ================= -->
 
             <LinearLayout
                 android:id="@+id/card_2"
@@ -173,105 +200,125 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="7dp"
+                android:padding="10dp"
                 android:layout_margin="2dp">
 
-                <LinearLayout
+
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="62dp">
 
                     <TextView
                         android:id="@+id/t2_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#FF7043"
-                        android:textSize="17sp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:textColor="#FF4D1C"
+                        android:textSize="23sp"
                         android:textStyle="bold"/>
 
-                    <TextView
+                    <ImageView
                         android:id="@+id/t2_mic"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎤"
-                        android:textSize="15sp"
-                        android:paddingStart="5dp"/>
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_mic_widget"
+                        android:background="@drawable/widget_mic_bg"
+                        android:contentDescription="Голосовая заметка"/>
 
-                </LinearLayout>
+                </RelativeLayout>
+
 
                 <TextView
                     android:id="@+id/t2_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="19sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:paddingTop="2dp"
+                    android:paddingBottom="4dp"/>
+
 
                 <TextView
                     android:id="@+id/t2_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="12sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="14sp"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingBottom="5dp"/>
+
 
                 <TextView
                     android:id="@+id/t2_addr"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#D0FFFFFF"
-                    android:textSize="12sp"
-                    android:maxLines="2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:maxLines="3"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:gravity="top"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="7dp"/>
+
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#66FFFFFF"/>
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="46dp"
+                    android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center"
+                    android:paddingTop="7dp">
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t2_call"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Позвонить"
-                        android:textColor="#66BB6A"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginEnd="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_phone_widget"
+                        android:background="@drawable/widget_call_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Позвонить"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t2_map"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Карта"
-                        android:textColor="#42A5F5"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="2dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_location_widget"
+                        android:background="@drawable/widget_map_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Карта"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t2_done"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Готово"
-                        android:textColor="#81C784"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_check_widget"
+                        android:background="@drawable/widget_done_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Готово"/>
 
                 </LinearLayout>
 
@@ -280,7 +327,7 @@
         </LinearLayout>
 
 
-        <!-- ==================== РЯД 2 ==================== -->
+        <!-- ==================== ROW 2 ==================== -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -288,7 +335,8 @@
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- CARD 3 -->
+
+            <!-- ================= CARD 3 ================= -->
 
             <LinearLayout
                 android:id="@+id/card_3"
@@ -297,112 +345,126 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="7dp"
+                android:padding="10dp"
                 android:layout_margin="2dp">
 
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="62dp">
 
                     <TextView
                         android:id="@+id/t3_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#FF7043"
-                        android:textSize="17sp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:textColor="#FF4D1C"
+                        android:textSize="23sp"
                         android:textStyle="bold"/>
 
-                    <TextView
+                    <ImageView
                         android:id="@+id/t3_mic"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎤"
-                        android:textSize="15sp"
-                        android:paddingStart="5dp"/>
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_mic_widget"
+                        android:background="@drawable/widget_mic_bg"
+                        android:contentDescription="Голосовая заметка"/>
 
-                </LinearLayout>
+                </RelativeLayout>
 
                 <TextView
                     android:id="@+id/t3_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="19sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:paddingTop="2dp"
+                    android:paddingBottom="4dp"/>
 
                 <TextView
                     android:id="@+id/t3_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="12sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="14sp"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingBottom="5dp"/>
 
                 <TextView
                     android:id="@+id/t3_addr"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#D0FFFFFF"
-                    android:textSize="12sp"
-                    android:maxLines="2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:maxLines="3"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:gravity="top"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="7dp"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#66FFFFFF"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="46dp"
+                    android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center"
+                    android:paddingTop="7dp">
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t3_call"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Позвонить"
-                        android:textColor="#66BB6A"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginEnd="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_phone_widget"
+                        android:background="@drawable/widget_call_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Позвонить"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t3_map"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Карта"
-                        android:textColor="#42A5F5"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="2dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_location_widget"
+                        android:background="@drawable/widget_map_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Карта"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t3_done"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Готово"
-                        android:textColor="#81C784"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_check_widget"
+                        android:background="@drawable/widget_done_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Готово"/>
 
                 </LinearLayout>
 
             </LinearLayout>
 
 
-            <!-- CARD 4 -->
+            <!-- ================= CARD 4 ================= -->
 
             <LinearLayout
                 android:id="@+id/card_4"
@@ -411,105 +473,119 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:background="@drawable/widget_card_bg"
-                android:padding="7dp"
+                android:padding="10dp"
                 android:layout_margin="2dp">
 
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="62dp">
 
                     <TextView
                         android:id="@+id/t4_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#FF7043"
-                        android:textSize="17sp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:textColor="#FF4D1C"
+                        android:textSize="23sp"
                         android:textStyle="bold"/>
 
-                    <TextView
+                    <ImageView
                         android:id="@+id/t4_mic"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎤"
-                        android:textSize="15sp"
-                        android:paddingStart="5dp"/>
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_mic_widget"
+                        android:background="@drawable/widget_mic_bg"
+                        android:contentDescription="Голосовая заметка"/>
 
-                </LinearLayout>
+                </RelativeLayout>
 
                 <TextView
                     android:id="@+id/t4_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="19sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:paddingTop="2dp"
+                    android:paddingBottom="4dp"/>
 
                 <TextView
                     android:id="@+id/t4_from"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#B3FFFFFF"
-                    android:textSize="12sp"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="14sp"
                     android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:ellipsize="end"
+                    android:paddingBottom="5dp"/>
 
                 <TextView
                     android:id="@+id/t4_addr"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:textColor="#D0FFFFFF"
-                    android:textSize="12sp"
-                    android:maxLines="2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:maxLines="3"
                     android:ellipsize="end"
-                    android:paddingTop="2dp"/>
+                    android:gravity="top"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="7dp"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#66FFFFFF"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="46dp"
+                    android:layout_height="64dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center"
+                    android:paddingTop="7dp">
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t4_call"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Позвонить"
-                        android:textColor="#66BB6A"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginEnd="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_phone_widget"
+                        android:background="@drawable/widget_call_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Позвонить"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t4_map"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Карта"
-                        android:textColor="#42A5F5"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="2dp"
+                        android:layout_marginEnd="2dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_location_widget"
+                        android:background="@drawable/widget_map_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Карта"/>
 
-                    <TextView
+                    <ImageButton
                         android:id="@+id/t4_done"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="Готово"
-                        android:textColor="#81C784"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:padding="2dp"/>
+                        android:layout_marginStart="5dp"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_check_widget"
+                        android:background="@drawable/widget_done_button"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Готово"/>
 
                 </LinearLayout>
 
@@ -520,40 +596,74 @@
     </LinearLayout>
 
 
-    <!-- Пагинация -->
+    <!-- ==================== PAGINATION ==================== -->
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="48dp"
         android:orientation="horizontal"
         android:gravity="center">
 
         <TextView
             android:id="@+id/btn_prev"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="◀"
-            android:textColor="#FFAB91"
-            android:textSize="22sp"
+            android:layout_width="64dp"
+            android:layout_height="44dp"
+            android:text="‹"
+            android:textColor="#FF7A35"
+            android:textSize="38sp"
+            android:textStyle="normal"
             android:gravity="center"
-            android:padding="4dp"/>
+            android:includeFontPadding="false"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
+
+        <TextView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_margin="5dp"
+            android:background="@drawable/widget_dot_active"/>
+
+        <TextView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_margin="5dp"
+            android:background="@drawable/widget_dot"/>
+
+        <TextView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_margin="5dp"
+            android:background="@drawable/widget_dot"/>
+
+        <TextView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_margin="5dp"
+            android:background="@drawable/widget_dot"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
 
         <TextView
             android:id="@+id/btn_next"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="▶"
-            android:textColor="#FFAB91"
-            android:textSize="22sp"
+            android:layout_width="64dp"
+            android:layout_height="44dp"
+            android:text="›"
+            android:textColor="#FF7A35"
+            android:textSize="38sp"
+            android:textStyle="normal"
             android:gravity="center"
-            android:padding="4dp"/>
+            android:includeFontPadding="false"/>
 
     </LinearLayout>
 
 
-    <!-- Пустое состояние -->
+    <!-- ==================== EMPTY ==================== -->
 
     <TextView
         android:id="@+id/w_empty"
@@ -562,7 +672,7 @@
         android:layout_weight="1"
         android:text="Нет предстоящих замеров"
         android:textColor="#CCFFFFFF"
-        android:textSize="15sp"
+        android:textSize="16sp"
         android:gravity="center"
         android:visibility="gone"/>
 
