@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.alarm.SettingsStore
 import java.io.File
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -36,47 +38,36 @@ fun SettingsScreen(
     onThemeChanged: () -> Unit
 ) {
     val ctx = LocalContext.current
-
     var ringUri by remember {
         mutableStateOf(store.ringtoneUri)
     }
-
     var bDay by remember {
         mutableStateOf(store.beforeDay)
     }
-
     var b2h by remember {
         mutableStateOf(store.before2h)
     }
-
     var b30 by remember {
         mutableStateOf(store.before30m)
     }
-
     var b10 by remember {
         mutableStateOf(store.before10m)
     }
-
     var customTime by remember {
         mutableStateOf(store.customReminderTime)
     }
-
     var sources by remember {
         mutableStateOf(store.sources.toList())
     }
-
     var newSource by remember {
         mutableStateOf("")
     }
-
     var showLogs by remember {
         mutableStateOf(false)
     }
-
     var logsText by remember {
         mutableStateOf("")
     }
-
     var themeMode by remember {
         mutableStateOf(store.themeMode)
     }
@@ -85,13 +76,11 @@ fun SettingsScreen(
         if (ringUri.isBlank()) {
             return "Стандартное уведомление"
         }
-
         return try {
             val r = RingtoneManager.getRingtone(
                 ctx,
                 Uri.parse(ringUri)
             )
-
             r?.getTitle(ctx) ?: "Выбранная мелодия"
         } catch (e: Exception) {
             "Выбранная мелодия"
@@ -101,14 +90,11 @@ fun SettingsScreen(
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-
         if (result.resultCode == Activity.RESULT_OK) {
-
             val u: Uri? =
                 result.data?.getParcelableExtra(
                     RingtoneManager.EXTRA_RINGTONE_PICKED_URI
                 )
-
             ringUri = u?.toString() ?: ""
             store.ringtoneUri = ringUri
         }
@@ -120,21 +106,17 @@ fun SettingsScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-
         // ---------------------------------------------------------
         // НАЗАД
         // ---------------------------------------------------------
-
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             TextButton(
                 onClick = onBack
             ) {
                 Text("← Назад")
             }
-
             Spacer(
                 modifier = Modifier.weight(1f)
             )
@@ -150,7 +132,6 @@ fun SettingsScreen(
         // ---------------------------------------------------------
         // ТЕМА
         // ---------------------------------------------------------
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -164,26 +145,21 @@ fun SettingsScreen(
                 DarkCardBorder
             )
         ) {
-
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-
                 Text(
                     text = "Тема:",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary
                 )
-
                 Spacer(
                     modifier = Modifier.height(4.dp)
                 )
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     TextButton(
                         onClick = {
                             themeMode = "system"
@@ -194,14 +170,13 @@ fun SettingsScreen(
                         Text(
                             text = "Системная",
                             color =
-                                if (themeMode == "system") {
-                                    Orange
-                                } else {
-                                    Gray
-                                }
+                            if (themeMode == "system") {
+                                Orange
+                            } else {
+                                Gray
+                            }
                         )
                     }
-
                     TextButton(
                         onClick = {
                             themeMode = "dark"
@@ -212,14 +187,13 @@ fun SettingsScreen(
                         Text(
                             text = "Тёмная",
                             color =
-                                if (themeMode == "dark") {
-                                    Orange
-                                } else {
-                                    Gray
-                                }
+                            if (themeMode == "dark") {
+                                Orange
+                            } else {
+                                Gray
+                            }
                         )
                     }
-
                     TextButton(
                         onClick = {
                             themeMode = "light"
@@ -230,11 +204,11 @@ fun SettingsScreen(
                         Text(
                             text = "Светлая",
                             color =
-                                if (themeMode == "light") {
-                                    Orange
-                                } else {
-                                    Gray
-                                }
+                            if (themeMode == "light") {
+                                Orange
+                            } else {
+                                Gray
+                            }
                         )
                     }
                 }
@@ -244,7 +218,6 @@ fun SettingsScreen(
         // ---------------------------------------------------------
         // НАПОМИНАНИЯ
         // ---------------------------------------------------------
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -258,30 +231,24 @@ fun SettingsScreen(
                 DarkCardBorder
             )
         ) {
-
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-
                 Text(
                     text = "Напоминать о замере:",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary
                 )
-
                 Spacer(
                     modifier = Modifier.height(4.dp)
                 )
-
                 Row(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
-
                         CheckRowSmall(
                             label = "За 1 день",
                             checked = bDay,
@@ -290,7 +257,6 @@ fun SettingsScreen(
                                 store.beforeDay = it
                             }
                         )
-
                         CheckRowSmall(
                             label = "За 2 часа",
                             checked = b2h,
@@ -300,11 +266,9 @@ fun SettingsScreen(
                             }
                         )
                     }
-
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
-
                         CheckRowSmall(
                             label = "За 30 минут",
                             checked = b30,
@@ -313,7 +277,6 @@ fun SettingsScreen(
                                 store.before30m = it
                             }
                         )
-
                         CheckRowSmall(
                             label = "За 10 минут",
                             checked = b10,
@@ -324,17 +287,14 @@ fun SettingsScreen(
                         )
                     }
                 }
-
                 Spacer(
                     modifier = Modifier.height(8.dp)
                 )
-
                 Text(
                     text = "Своё время (например, 08:30):",
                     fontSize = 13.sp,
                     color = TextSecondary
                 )
-
                 OutlinedTextField(
                     value = customTime,
                     onValueChange = {
@@ -359,7 +319,6 @@ fun SettingsScreen(
         // ---------------------------------------------------------
         // ИСТОЧНИКИ
         // ---------------------------------------------------------
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -373,26 +332,21 @@ fun SettingsScreen(
                 DarkCardBorder
             )
         ) {
-
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-
                 Text(
                     text = "Источники (От кого):",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary
                 )
-
                 Spacer(
                     modifier = Modifier.height(8.dp)
                 )
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     OutlinedTextField(
                         value = newSource,
                         onValueChange = {
@@ -407,24 +361,17 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodySmall
                     )
-
                     Spacer(
                         modifier = Modifier.width(8.dp)
                     )
-
                     Button(
                         onClick = {
-
                             if (newSource.isNotBlank()) {
-
                                 val updated =
                                     sources + newSource.trim()
-
                                 sources = updated
-
                                 store.sources =
                                     updated.toSet()
-
                                 newSource = ""
                             }
                         },
@@ -433,49 +380,38 @@ fun SettingsScreen(
                             containerColor = Orange
                         )
                     ) {
-
                         Text(
                             text = "Добавить",
                             color = Color.White
                         )
                     }
                 }
-
                 if (sources.isNotEmpty()) {
-
                     Spacer(
                         modifier = Modifier.height(8.dp)
                     )
-
                     sources.forEach { source ->
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp),
                             verticalAlignment =
-                                Alignment.CenterVertically
+                            Alignment.CenterVertically
                         ) {
-
                             Text(
                                 text = "• $source",
                                 color = TextPrimary,
                                 modifier = Modifier.weight(1f)
                             )
-
                             IconButton(
                                 onClick = {
-
                                     val updated =
                                         sources - source
-
                                     sources = updated
-
                                     store.sources =
                                         updated.toSet()
                                 }
                             ) {
-
                                 Text(
                                     text = "✕",
                                     color = Red
@@ -490,7 +426,6 @@ fun SettingsScreen(
         // ---------------------------------------------------------
         // МЕЛОДИЯ
         // ---------------------------------------------------------
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -504,54 +439,43 @@ fun SettingsScreen(
                 DarkCardBorder
             )
         ) {
-
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-
                 Text(
                     text = "Мелодия:",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary
                 )
-
                 TextButton(
                     onClick = {
-
                         val intent =
                             Intent(
                                 RingtoneManager.ACTION_RINGTONE_PICKER
                             ).apply {
-
                                 putExtra(
                                     RingtoneManager.EXTRA_RINGTONE_TYPE,
                                     RingtoneManager.TYPE_NOTIFICATION
                                 )
-
                                 putExtra(
                                     RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT,
                                     true
                                 )
-
                                 putExtra(
                                     RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT,
                                     true
                                 )
-
                                 if (ringUri.isNotBlank()) {
-
                                     putExtra(
                                         RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
                                         Uri.parse(ringUri)
                                     )
                                 }
                             }
-
                         picker.launch(intent)
                     }
                 ) {
-
                     Text(
                         text = "🎵 " + ringName(),
                         color = Orange
@@ -563,7 +487,6 @@ fun SettingsScreen(
         // ---------------------------------------------------------
         // РАЗРЕШЕНИЯ
         // ---------------------------------------------------------
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -577,34 +500,27 @@ fun SettingsScreen(
                 DarkCardBorder
             )
         ) {
-
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-
                 Text(
                     text = "💡 Разрешения",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary
                 )
-
                 Text(
                     text = "Если напоминания не срабатывают — разрешите точные будильники:",
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
-
                 TextButton(
                     onClick = {
-
                         try {
-
                             ctx.startActivity(
                                 Intent(
                                     Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                                 ).apply {
-
                                     data = Uri.fromParts(
                                         "package",
                                         ctx.packageName,
@@ -612,13 +528,11 @@ fun SettingsScreen(
                                     )
                                 }
                             )
-
                         } catch (e: Exception) {
                             // Ничего не делаем
                         }
                     }
                 ) {
-
                     Text(
                         text = "Открыть настройки приложения",
                         color = Orange
@@ -630,7 +544,6 @@ fun SettingsScreen(
         // ---------------------------------------------------------
         // ЛОГИ ВИДЖЕТА
         // ---------------------------------------------------------
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -644,40 +557,32 @@ fun SettingsScreen(
                 DarkCardBorder
             )
         ) {
-
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-
                 Text(
                     text = "Отладка виджета",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextPrimary
                 )
-
                 Spacer(
                     modifier = Modifier.height(4.dp)
                 )
-
                 Text(
                     text = "Логи нужны для проверки работы виджета.",
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
-
                 Spacer(
                     modifier = Modifier.height(4.dp)
                 )
-
                 TextButton(
                     onClick = {
-
                         val file = File(
                             ctx.filesDir,
                             "widget_log.txt"
                         )
-
                         logsText =
                             if (file.exists()) {
                                 try {
@@ -688,11 +593,9 @@ fun SettingsScreen(
                             } else {
                                 "Файл логов не найден"
                             }
-
                         showLogs = true
                     }
                 ) {
-
                     Text(
                         text = "📋 Показать логи виджета",
                         color = Blue
@@ -703,42 +606,26 @@ fun SettingsScreen(
     }
 
     // =============================================================
-    // ОКНО ЛОГОВ
+    // ОКНО ЛОГОВ С ПРОКРУТКОЙ, КОПИРОВАНИЕМ И ОЧИСТКОЙ
     // =============================================================
-
     if (showLogs) {
-
-        val logScrollState =
-            rememberScrollState()
-
-        val lineCount =
-            if (logsText.isBlank()) {
-                0
-            } else {
-                logsText.lines().size
-            }
+        val logScrollState = rememberScrollState()
+        val lineCount = if (logsText.isBlank()) 0 else logsText.lines().size
+        val hasManyLines = lineCount > 15
 
         AlertDialog(
-
-            onDismissRequest = {
-                showLogs = false
-            },
-
+            onDismissRequest = { showLogs = false },
             title = {
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Text(
                         text = "Логи виджета",
                         modifier = Modifier.weight(1f),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-
                     Text(
                         text = "$lineCount строк",
                         fontSize = 11.sp,
@@ -746,33 +633,34 @@ fun SettingsScreen(
                     )
                 }
             },
-
             text = {
-
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Индикатор прокрутки
+                    if (hasManyLines) {
+                        Text(
+                            text = "↕ Прокрутите для просмотра всех логов",
+                            fontSize = 11.sp,
+                            color = Orange,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
 
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(
-                                min = 250.dp,
-                                max = 500.dp
-                            ),
+                            .heightIn(min = 300.dp, max = 500.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF111111)
+                        color = Color(0xFF111111),
+                        border = BorderStroke(1.dp, Color(0xFF333333))
                     ) {
-
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(
-                                    logScrollState
-                                )
+                                .verticalScroll(logScrollState)
                                 .padding(12.dp)
                         ) {
-
                             Text(
                                 text = if (logsText.isBlank()) {
                                     "Логи пока отсутствуют"
@@ -787,121 +675,69 @@ fun SettingsScreen(
                         }
                     }
 
-                    Spacer(
-                        modifier = Modifier.height(8.dp)
-                    )
+                    Spacer(Modifier.height(8.dp))
 
-                    Text(
-                        text = "↕ Прокрутите область для просмотра всего лога",
-                        fontSize = 11.sp,
-                        color = TextSecondary
-                    )
+                    // Кнопка прокрутки вниз
+                    if (hasManyLines) {
+                        TextButton(
+                            onClick = {
+                                MainScope().launch {
+                                    logScrollState.animateScrollTo(logScrollState.maxValue)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("⬇ Прокрутить в конец", color = Orange, fontSize = 12.sp)
+                        }
+                    }
                 }
             },
-
             confirmButton = {
-
                 Row(
-                    horizontalArrangement =
-                        Arrangement.spacedBy(4.dp),
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
+                    // Кнопка копирования
                     Button(
                         onClick = {
-
-                            val clipboard =
-                                ctx.getSystemService(
-                                    Context.CLIPBOARD_SERVICE
-                                ) as ClipboardManager
-
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText(
-                                    "Логи виджета",
-                                    logsText
-                                )
-                            )
-
-                            Toast.makeText(
-                                ctx,
-                                "Все логи скопированы",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Логи виджета", logsText))
+                            Toast.makeText(ctx, "Все логи скопированы в буфер обмена", Toast.LENGTH_SHORT).show()
                         },
-
                         enabled = logsText.isNotBlank(),
-
                         shape = RoundedCornerShape(10.dp),
-
-                        contentPadding =
-                            PaddingValues(
-                                horizontal = 12.dp,
-                                vertical = 8.dp
-                            )
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
                     ) {
-
-                        Text(
-                            text = "📋 Скопировать всё",
-                            fontSize = 12.sp
-                        )
+                        Text("📋 Копировать", fontSize = 12.sp)
                     }
 
-                    TextButton(
+                    // Кнопка очистки
+                    Button(
                         onClick = {
-
-                            val file = File(
-                                ctx.filesDir,
-                                "widget_log.txt"
-                            )
-
+                            val file = File(ctx.filesDir, "widget_log.txt")
                             try {
-
                                 if (file.exists()) {
                                     file.writeText("")
                                 }
-
                                 logsText = ""
-
-                                Toast.makeText(
-                                    ctx,
-                                    "Логи очищены",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-
+                                Toast.makeText(ctx, "Логи очищены", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
-
-                                Toast.makeText(
-                                    ctx,
-                                    "Не удалось очистить логи",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(ctx, "Не удалось очистить логи", Toast.LENGTH_SHORT).show()
                             }
                         },
-
-                        enabled = logsText.isNotBlank()
+                        enabled = logsText.isNotBlank(),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Red)
                     ) {
-
-                        Text(
-                            text = "Очистить",
-                            color = Color(0xFFD32F2F),
-                            fontSize = 12.sp
-                        )
+                        Text("🗑 Очистить", fontSize = 12.sp)
                     }
                 }
             },
-
             dismissButton = {
-
-                TextButton(
-                    onClick = {
-                        showLogs = false
-                    }
-                ) {
-
-                    Text(
-                        text = "Закрыть"
-                    )
+                TextButton(onClick = { showLogs = false }) {
+                    Text("Закрыть")
                 }
             }
         )
@@ -911,27 +747,23 @@ fun SettingsScreen(
 // ================================================================
 // СТРОКА CHECKBOX
 // ================================================================
-
 @Composable
 fun CheckRowSmall(
     label: String,
     checked: Boolean,
     onChange: (Boolean) -> Unit
 ) {
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(
             vertical = 2.dp
         )
     ) {
-
         Checkbox(
             checked = checked,
             onCheckedChange = onChange,
             modifier = Modifier.size(24.dp)
         )
-
         Text(
             text = label,
             fontSize = 12.sp,
