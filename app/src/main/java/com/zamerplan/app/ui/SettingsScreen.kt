@@ -935,50 +935,178 @@ fun SettingsScreen(
 
     if (showLogs) {
 
-        AlertDialog(
+    val logScrollState = rememberScrollState()
 
-            onDismissRequest = {
-                showLogs = false
-            },
+    AlertDialog(
+        onDismissRequest = {
+            showLogs = false
+        },
 
-            title = {
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
                 Text(
-                    "Логи виджета"
+                    text = "Логи виджета",
+                    modifier = Modifier.weight(1f),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            },
 
-            text = {
+                val lineCount = if (logsText.isBlank()) {
+                    0
+                } else {
+                    logsText.lines().size
+                }
 
                 Text(
-                    text = logsText,
+                    text = "$lineCount строк",
+                    fontSize = 11.sp,
+                    color = TextSecondary
+                )
+            }
+        },
 
-                    style =
-                        MaterialTheme
-                            .typography
-                            .bodySmall,
+        text = {
 
-                    modifier =
-                        Modifier.heightIn(
-                            max = 400.dp
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(
+                            min = 250.dp,
+                            max = 500.dp
+                        ),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF111111)
+                ) {
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(logScrollState)
+                            .padding(12.dp)
+                    ) {
+
+                        Text(
+                            text = logsText,
+                            color = Color(0xFFEAEAEA),
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                            fontFamily = FontFamily.Monospace
                         )
-                )
-            },
-
-            confirmButton = {
-
-                TextButton(
-                    onClick = {
-                        showLogs = false
                     }
+                }
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+
+                Text(
+                    text = "↕ Прокрутите вверх или вниз для просмотра всего лога",
+                    fontSize = 11.sp,
+                    color = TextSecondary
+                )
+            }
+        },
+
+        confirmButton = {
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Button(
+                    onClick = {
+
+                        val clipboard =
+                            ctx.getSystemService(
+                                ClipboardManager::class.java
+                            )
+
+                        clipboard?.setPrimaryClip(
+                            ClipData.newPlainText(
+                                "Логи виджета",
+                                logsText
+                            )
+                        )
+
+                        Toast.makeText(
+                            ctx,
+                            "Все логи скопированы",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+
+                    enabled = logsText.isNotBlank(),
+
+                    shape = RoundedCornerShape(10.dp),
+
+                    contentPadding = PaddingValues(
+                        horizontal = 12.dp,
+                        vertical = 8.dp
+                    )
                 ) {
 
                     Text(
-                        "Закрыть"
+                        text = "📋 Скопировать всё",
+                        fontSize = 12.sp
+                    )
+                }
+
+                TextButton(
+                    onClick = {
+
+                        val file = File(
+                            ctx.filesDir,
+                            "widget_log.txt"
+                        )
+
+                        if (file.exists()) {
+                            file.writeText("")
+                        }
+
+                        logsText = ""
+
+                        Toast.makeText(
+                            ctx,
+                            "Логи очищены",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+
+                    enabled = logsText.isNotBlank()
+                ) {
+
+                    Text(
+                        text = "Очистить",
+                        color = Color(0xFFD32F2F),
+                        fontSize = 12.sp
                     )
                 }
             }
-        )
-    }
+        },
+
+        dismissButton = {
+
+            TextButton(
+                onClick = {
+                    showLogs = false
+                }
+            ) {
+
+                Text(
+                    text = "Закрыть"
+                )
+            }
+        }
+    )
 }
 
 // =================================================================
