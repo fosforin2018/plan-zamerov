@@ -13,20 +13,30 @@ import android.widget.RemoteViews
 import com.zamerplan.app.MainActivity
 import com.zamerplan.app.R
 import com.zamerplan.app.alarm.ReminderScheduler
+import com.zamerplan.app.alarm.SettingsStore
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
 import java.io.File
 import java.time.LocalDate
 
-private fun writeLog(context: Context, message: String) {
+private fun writeLog(
+    context: Context,
+    message: String
+) {
     try {
-        val file = File(context.filesDir, "widget_log.txt")
+        val file =
+            File(context.filesDir, "widget_log.txt")
+
         file.appendText(
             "${System.currentTimeMillis()}: $message\n"
         )
     } catch (e: Exception) {
-        Log.e("ZamerWidget", "Ошибка записи лога", e)
+        Log.e(
+            "ZamerWidget",
+            "Ошибка записи лога",
+            e
+        )
     }
 }
 
@@ -51,14 +61,20 @@ class ZamerWidget : AppWidgetProvider() {
         private const val KEY_PAGE =
             "page"
 
+        /*
+         * Обновляет все установленные экземпляры виджета.
+         */
         fun refreshAll(context: Context) {
 
-            val appContext = context.applicationContext
+            val appContext =
+                context.applicationContext
 
             try {
 
                 val manager =
-                    AppWidgetManager.getInstance(appContext)
+                    AppWidgetManager.getInstance(
+                        appContext
+                    )
 
                 val componentName =
                     ComponentName(
@@ -67,7 +83,9 @@ class ZamerWidget : AppWidgetProvider() {
                     )
 
                 val ids =
-                    manager.getAppWidgetIds(componentName)
+                    manager.getAppWidgetIds(
+                        componentName
+                    )
 
                 writeLog(
                     appContext,
@@ -88,7 +106,8 @@ class ZamerWidget : AppWidgetProvider() {
 
                         writeLog(
                             appContext,
-                            "refreshAll widget=$id ERROR: ${e.stackTraceToString()}"
+                            "refreshAll widget=$id ERROR: " +
+                                    e.stackTraceToString()
                         )
                     }
                 }
@@ -97,7 +116,8 @@ class ZamerWidget : AppWidgetProvider() {
 
                 writeLog(
                     appContext,
-                    "refreshAll ERROR: ${e.stackTraceToString()}"
+                    "refreshAll ERROR: " +
+                            e.stackTraceToString()
                 )
 
                 Log.e(
@@ -109,8 +129,9 @@ class ZamerWidget : AppWidgetProvider() {
         }
     }
 
-    override fun onEnabled(context: Context) {
-
+    override fun onEnabled(
+        context: Context
+    ) {
         super.onEnabled(context)
 
         writeLog(
@@ -119,8 +140,9 @@ class ZamerWidget : AppWidgetProvider() {
         )
     }
 
-    override fun onDisabled(context: Context) {
-
+    override fun onDisabled(
+        context: Context
+    ) {
         super.onDisabled(context)
 
         writeLog(
@@ -162,7 +184,8 @@ class ZamerWidget : AppWidgetProvider() {
 
                 writeLog(
                     appContext,
-                    "onUpdate ERROR widget=$widgetId: ${e.stackTraceToString()}"
+                    "onUpdate ERROR widget=$widgetId: " +
+                            e.stackTraceToString()
                 )
 
                 Log.e(
@@ -289,7 +312,8 @@ class ZamerWidget : AppWidgetProvider() {
 
                             list[index] =
                                 list[index].copy(
-                                    status = ZamerStatus.DONE
+                                    status =
+                                        ZamerStatus.DONE
                                 )
 
                             storage.save(list)
@@ -305,7 +329,8 @@ class ZamerWidget : AppWidgetProvider() {
 
                                 writeLog(
                                     appContext,
-                                    "ReminderScheduler.cancel ERROR: ${e.stackTraceToString()}"
+                                    "ReminderScheduler.cancel ERROR: " +
+                                            e.stackTraceToString()
                                 )
                             }
 
@@ -319,7 +344,8 @@ class ZamerWidget : AppWidgetProvider() {
 
             writeLog(
                 appContext,
-                "onReceive ERROR: ${e.stackTraceToString()}"
+                "onReceive ERROR: " +
+                        e.stackTraceToString()
             )
 
             Log.e(
@@ -346,7 +372,8 @@ class ZamerWidget : AppWidgetProvider() {
                 all
                     .filter {
                         it.date == today &&
-                        it.status == ZamerStatus.PLANNED
+                                it.status ==
+                                ZamerStatus.PLANNED
                     }
                     .sortedBy {
                         it.time
@@ -356,7 +383,8 @@ class ZamerWidget : AppWidgetProvider() {
                 all
                     .filter {
                         it.date > today &&
-                        it.status == ZamerStatus.PLANNED
+                                it.status ==
+                                ZamerStatus.PLANNED
                     }
                     .sortedWith(
                         compareBy(
@@ -375,11 +403,25 @@ class ZamerWidget : AppWidgetProvider() {
 
             writeLog(
                 context,
-                "getPlannedZamers ERROR: ${e.stackTraceToString()}"
+                "getPlannedZamers ERROR: " +
+                        e.stackTraceToString()
             )
 
             emptyList()
         }
+    }
+
+    /*
+     * Получаем выбранный режим:
+     *
+     * 2 или 4.
+     */
+    private fun getPageSize(
+        context: Context
+    ): Int {
+
+        return SettingsStore(context)
+            .widgetItemsCount
     }
 
     private fun getTotalPages(
@@ -389,12 +431,14 @@ class ZamerWidget : AppWidgetProvider() {
         val list =
             getPlannedZamers(context)
 
-        val pageSize = 4
+        val pageSize =
+            getPageSize(context)
 
         return if (list.isEmpty()) {
             0
         } else {
-            (list.size + pageSize - 1) / pageSize
+            (list.size + pageSize - 1) /
+                    pageSize
         }
     }
 
@@ -440,7 +484,9 @@ class ZamerWidget : AppWidgetProvider() {
 
                 updateWidget(
                     context,
-                    AppWidgetManager.getInstance(context),
+                    AppWidgetManager.getInstance(
+                        context
+                    ),
                     widgetId
                 )
 
@@ -479,12 +525,15 @@ class ZamerWidget : AppWidgetProvider() {
 
             writeLog(
                 context,
-                "changePage $currentPage -> $newPage / $totalPages"
+                "changePage $currentPage -> " +
+                        "$newPage / $totalPages"
             )
 
             updateWidget(
                 context,
-                AppWidgetManager.getInstance(context),
+                AppWidgetManager.getInstance(
+                    context
+                ),
                 widgetId
             )
 
@@ -492,7 +541,8 @@ class ZamerWidget : AppWidgetProvider() {
 
             writeLog(
                 context,
-                "changePage ERROR: ${e.stackTraceToString()}"
+                "changePage ERROR: " +
+                        e.stackTraceToString()
             )
         }
     }
@@ -513,18 +563,21 @@ class ZamerWidget : AppWidgetProvider() {
             val list =
                 getPlannedZamers(context)
 
+            val pageSize =
+                getPageSize(context)
+
             writeLog(
                 context,
-                "loaded/filtered zamers=${list.size}"
+                "loaded zamers=${list.size}, " +
+                        "pageSize=$pageSize"
             )
-
-            val pageSize = 4
 
             val totalPages =
                 if (list.isEmpty()) {
                     0
                 } else {
-                    (list.size + pageSize - 1) / pageSize
+                    (list.size + pageSize - 1) /
+                            pageSize
                 }
 
             var currentPage =
@@ -534,7 +587,9 @@ class ZamerWidget : AppWidgetProvider() {
 
                 currentPage = 0
 
-            } else if (currentPage >= totalPages) {
+            } else if (
+                currentPage >= totalPages
+            ) {
 
                 currentPage =
                     totalPages - 1
@@ -563,24 +618,23 @@ class ZamerWidget : AppWidgetProvider() {
 
             val pageItems =
                 if (start < list.size) {
+
                     list.subList(
                         start,
                         end
                     )
+
                 } else {
+
                     emptyList()
                 }
 
             writeLog(
                 context,
-                "pageItems=${pageItems.size}, page=$currentPage, totalPages=$totalPages"
+                "pageItems=${pageItems.size}, " +
+                        "page=$currentPage, " +
+                        "totalPages=$totalPages"
             )
-
-            /*
-             * ВАЖНО:
-             * RemoteViews создаётся только из XML,
-             * предназначенного для AppWidget.
-             */
 
             val views =
                 RemoteViews(
@@ -588,6 +642,9 @@ class ZamerWidget : AppWidgetProvider() {
                     R.layout.zamer_widget
                 )
 
+            /*
+             * Заголовок.
+             */
             val title =
                 if (list.isEmpty()) {
                     "📏 План замеров"
@@ -601,9 +658,29 @@ class ZamerWidget : AppWidgetProvider() {
             )
 
             /*
+             * Настраиваем визуальный режим:
+             *
+             * 2 = только первый ряд
+             * 4 = оба ряда
+             */
+            if (pageSize == 2) {
+
+                views.setViewVisibility(
+                    R.id.cards_row_2,
+                    View.GONE
+                )
+
+            } else {
+
+                views.setViewVisibility(
+                    R.id.cards_row_2,
+                    View.VISIBLE
+                )
+            }
+
+            /*
              * Пустое состояние.
              */
-
             if (pageItems.isEmpty()) {
 
                 views.setViewVisibility(
@@ -650,7 +727,8 @@ class ZamerWidget : AppWidgetProvider() {
                 views.setViewVisibility(
                     R.id.btn_next,
                     if (
-                        currentPage < totalPages - 1
+                        currentPage <
+                        totalPages - 1
                     ) {
                         View.VISIBLE
                     } else {
@@ -731,9 +809,8 @@ class ZamerWidget : AppWidgetProvider() {
                     )
 
                 /*
-                 * Сначала скрываем все карточки.
+                 * Скрываем все карточки.
                  */
-
                 for (cardId in cardIds) {
 
                     views.setViewVisibility(
@@ -743,12 +820,11 @@ class ZamerWidget : AppWidgetProvider() {
                 }
 
                 /*
-                 * Заполняем существующие карточки.
+                 * Заполняем только необходимые.
                  */
-
                 for (i in pageItems.indices) {
 
-                    if (i >= 4) {
+                    if (i >= pageSize) {
                         break
                     }
 
@@ -775,9 +851,8 @@ class ZamerWidget : AppWidgetProvider() {
             }
 
             /*
-             * Нажатие на сам виджет.
+             * Открытие приложения.
              */
-
             val openIntent =
                 Intent(
                     context,
@@ -799,9 +874,8 @@ class ZamerWidget : AppWidgetProvider() {
             )
 
             /*
-             * Кнопка назад.
+             * PREVIOUS.
              */
-
             val prevIntent =
                 Intent(
                     context,
@@ -832,9 +906,8 @@ class ZamerWidget : AppWidgetProvider() {
             )
 
             /*
-             * Кнопка вперёд.
+             * NEXT.
              */
-
             val nextIntent =
                 Intent(
                     context,
@@ -865,9 +938,8 @@ class ZamerWidget : AppWidgetProvider() {
             )
 
             /*
-             * Самое главное действие.
+             * Передаём результат системе.
              */
-
             appWidgetManager.updateAppWidget(
                 widgetId,
                 views
@@ -882,7 +954,8 @@ class ZamerWidget : AppWidgetProvider() {
 
             writeLog(
                 context,
-                "updateWidget ERROR: ${e.stackTraceToString()}"
+                "updateWidget ERROR: " +
+                        e.stackTraceToString()
             )
 
             Log.e(
@@ -910,15 +983,9 @@ class ZamerWidget : AppWidgetProvider() {
 
         try {
 
-            writeLog(
-                context,
-                "fillCard zamer=${z.id}"
-            )
-
             /*
              * Время.
              */
-
             views.setTextViewText(
                 timeId,
                 z.timeText()
@@ -933,7 +1000,6 @@ class ZamerWidget : AppWidgetProvider() {
             /*
              * Имя.
              */
-
             if (z.name.isNotBlank()) {
 
                 views.setTextViewText(
@@ -955,9 +1021,8 @@ class ZamerWidget : AppWidgetProvider() {
             }
 
             /*
-             * Источник контакта.
+             * От кого.
              */
-
             if (z.contactFrom.isNotBlank()) {
 
                 views.setTextViewText(
@@ -981,7 +1046,6 @@ class ZamerWidget : AppWidgetProvider() {
             /*
              * Адрес.
              */
-
             if (z.address.isNotBlank()) {
 
                 views.setTextViewText(
@@ -1005,7 +1069,6 @@ class ZamerWidget : AppWidgetProvider() {
             /*
              * Телефон.
              */
-
             val phone =
                 z.phone.filter {
                     it.isDigit() || it == '+'
@@ -1049,7 +1112,6 @@ class ZamerWidget : AppWidgetProvider() {
             /*
              * Карта.
              */
-
             if (z.address.isNotBlank()) {
 
                 val mapIntent =
@@ -1091,7 +1153,6 @@ class ZamerWidget : AppWidgetProvider() {
             /*
              * Выполнено.
              */
-
             val doneIntent =
                 Intent(
                     context,
@@ -1133,11 +1194,7 @@ class ZamerWidget : AppWidgetProvider() {
 
             /*
              * Голосовая запись.
-             *
-             * Используем voiceFile из самой модели,
-             * если он задан.
              */
-
             val voicePath =
                 if (z.voiceFile.isNotBlank()) {
                     z.voiceFile
@@ -1209,7 +1266,8 @@ class ZamerWidget : AppWidgetProvider() {
 
             writeLog(
                 context,
-                "fillCard ERROR zamer=${z.id}: ${e.stackTraceToString()}"
+                "fillCard ERROR zamer=${z.id}: " +
+                        e.stackTraceToString()
             )
 
             Log.e(
@@ -1227,7 +1285,7 @@ class ZamerWidget : AppWidgetProvider() {
         return (
             value xor
                     (value ushr 32)
-        ).toInt()
+            ).toInt()
     }
 
     private fun statusColor(
