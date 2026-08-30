@@ -69,12 +69,15 @@ class ZamerWidget : AppWidgetProvider() {
          */
         fun refreshAll(context: Context) {
 
-            val appContext = context.applicationContext
+            val appContext =
+                context.applicationContext
 
             try {
 
                 val manager =
-                    AppWidgetManager.getInstance(appContext)
+                    AppWidgetManager.getInstance(
+                        appContext
+                    )
 
                 val componentName =
                     ComponentName(
@@ -132,6 +135,7 @@ class ZamerWidget : AppWidgetProvider() {
     override fun onEnabled(
         context: Context
     ) {
+
         super.onEnabled(context)
 
         writeLog(
@@ -143,6 +147,7 @@ class ZamerWidget : AppWidgetProvider() {
     override fun onDisabled(
         context: Context
     ) {
+
         super.onDisabled(context)
 
         writeLog(
@@ -292,59 +297,50 @@ class ZamerWidget : AppWidgetProvider() {
 
                     if (zamerId != -1L) {
 
-                        try {
+                        val storage =
+                            Storage(appContext)
 
-                            val storage =
-                                Storage(appContext)
+                        val list =
+                            storage.load().toMutableList()
 
-                            val list =
-                                storage.load().toMutableList()
-
-                            val index =
-                                list.indexOfFirst {
-                                    it.id == zamerId
-                                }
-
-                            writeLog(
-                                appContext,
-                                "DONE index=$index list=${list.size}"
-                            )
-
-                            if (index >= 0) {
-
-                                list[index] =
-                                    list[index].copy(
-                                        status =
-                                            ZamerStatus.DONE
-                                    )
-
-                                storage.save(list)
-
-                                try {
-
-                                    ReminderScheduler.cancel(
-                                        appContext,
-                                        zamerId
-                                    )
-
-                                } catch (e: Exception) {
-
-                                    writeLog(
-                                        appContext,
-                                        "ReminderScheduler.cancel ERROR: " +
-                                                e.stackTraceToString()
-                                    )
-                                }
-
-                                refreshAll(appContext)
+                        val index =
+                            list.indexOfFirst {
+                                it.id == zamerId
                             }
 
-                        } catch (e: Exception) {
+                        writeLog(
+                            appContext,
+                            "DONE index=$index list=${list.size}"
+                        )
 
-                            writeLog(
-                                appContext,
-                                "DONE ERROR: " +
-                                        e.stackTraceToString()
+                        if (index >= 0) {
+
+                            list[index] =
+                                list[index].copy(
+                                    status =
+                                        ZamerStatus.DONE
+                                )
+
+                            storage.save(list)
+
+                            try {
+
+                                ReminderScheduler.cancel(
+                                    appContext,
+                                    zamerId
+                                )
+
+                            } catch (e: Exception) {
+
+                                writeLog(
+                                    appContext,
+                                    "ReminderScheduler.cancel ERROR: " +
+                                            e.stackTraceToString()
+                                )
+                            }
+
+                            refreshAll(
+                                appContext
                             )
                         }
                     }
@@ -367,6 +363,12 @@ class ZamerWidget : AppWidgetProvider() {
         }
     }
 
+    /**
+     * Получает запланированные замеры.
+     *
+     * Сначала сегодняшние,
+     * затем будущие.
+     */
     private fun getPlannedZamers(
         context: Context
     ): List<Zamer> {
@@ -406,9 +408,10 @@ class ZamerWidget : AppWidgetProvider() {
 
             (
                 todayItems + futureItems
-            ).distinctBy {
-                it.id
-            }
+            )
+                .distinctBy {
+                    it.id
+                }
 
         } catch (e: Exception) {
 
@@ -423,10 +426,9 @@ class ZamerWidget : AppWidgetProvider() {
     }
 
     /**
-     * Количество карточек:
+     * Размер страницы:
      *
-     * 2 — компактный режим.
-     * 4 — расширенный режим.
+     * 2 или 4.
      */
     private fun getPageSize(
         context: Context
@@ -478,22 +480,33 @@ class ZamerWidget : AppWidgetProvider() {
         context: Context
     ): Int {
 
-        return try {
+        return context
+            .getSharedPreferences(
+                PREFS_NAME,
+                Context.MODE_PRIVATE
+            )
+            .getInt(
+                KEY_PAGE,
+                0
+            )
+    }
 
-            context
-                .getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
-                .getInt(
-                    KEY_PAGE,
-                    0
-                )
+    private fun saveCurrentPage(
+        context: Context,
+        page: Int
+    ) {
 
-        } catch (e: Exception) {
-
-            0
-        }
+        context
+            .getSharedPreferences(
+                PREFS_NAME,
+                Context.MODE_PRIVATE
+            )
+            .edit()
+            .putInt(
+                KEY_PAGE,
+                page
+            )
+            .apply()
     }
 
     private fun changePage(
@@ -509,38 +522,24 @@ class ZamerWidget : AppWidgetProvider() {
 
             if (totalPages <= 0) {
 
-                context
-                    .getSharedPreferences(
-                        PREFS_NAME,
-                        Context.MODE_PRIVATE
-                    )
-                    .edit()
-                    .putInt(
-                        KEY_PAGE,
-                        0
-                    )
-                    .apply()
+                saveCurrentPage(
+                    context,
+                    0
+                )
 
                 updateWidget(
                     context,
-                    AppWidgetManager.getInstance(context),
+                    AppWidgetManager.getInstance(
+                        context
+                    ),
                     widgetId
                 )
 
                 return
             }
 
-            val prefs =
-                context.getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
-
             val currentPage =
-                prefs.getInt(
-                    KEY_PAGE,
-                    0
-                )
+                getCurrentPage(context)
 
             var newPage =
                 currentPage + delta
@@ -553,22 +552,23 @@ class ZamerWidget : AppWidgetProvider() {
                 newPage = totalPages - 1
             }
 
-            prefs.edit()
-                .putInt(
-                    KEY_PAGE,
-                    newPage
-                )
-                .apply()
+            saveCurrentPage(
+                context,
+                newPage
+            )
 
             writeLog(
                 context,
-                "changePage $currentPage -> " +
+                "changePage " +
+                        "$currentPage -> " +
                         "$newPage / $totalPages"
             )
 
             updateWidget(
                 context,
-                AppWidgetManager.getInstance(context),
+                AppWidgetManager.getInstance(
+                    context
+                ),
                 widgetId
             )
 
@@ -630,17 +630,10 @@ class ZamerWidget : AppWidgetProvider() {
                     totalPages - 1
             }
 
-            context
-                .getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-                )
-                .edit()
-                .putInt(
-                    KEY_PAGE,
-                    currentPage
-                )
-                .apply()
+            saveCurrentPage(
+                context,
+                currentPage
+            )
 
             val start =
                 currentPage * pageSize
@@ -677,6 +670,11 @@ class ZamerWidget : AppWidgetProvider() {
                     R.layout.zamer_widget
                 )
 
+            writeLog(
+                context,
+                "RemoteViews created"
+            )
+
             /**
              * Заголовок.
              */
@@ -687,27 +685,216 @@ class ZamerWidget : AppWidgetProvider() {
                     "📏 План замеров · ${list.size}"
                 }
 
-            views.setTextViewText(
-                R.id.w_title,
-                title
-            )
+            try {
+
+                views.setTextViewText(
+                    R.id.w_title,
+                    title
+                )
+
+                writeLog(
+                    context,
+                    "title set"
+                )
+
+            } catch (e: Exception) {
+
+                writeLog(
+                    context,
+                    "title ERROR: " +
+                            e.stackTraceToString()
+                )
+            }
 
             /**
-             * Режим 2 / 4 карточки.
+             * ID карточек.
              */
-            if (pageSize == 2) {
-
-                views.setViewVisibility(
-                    R.id.cards_row_2,
-                    View.GONE
+            val cardIds =
+                intArrayOf(
+                    R.id.card_1,
+                    R.id.card_2,
+                    R.id.card_3,
+                    R.id.card_4
                 )
 
-            } else {
-
-                views.setViewVisibility(
-                    R.id.cards_row_2,
-                    View.VISIBLE
+            /**
+             * Время.
+             */
+            val timeIds =
+                intArrayOf(
+                    R.id.t1_time,
+                    R.id.t2_time,
+                    R.id.t3_time,
+                    R.id.t4_time
                 )
+
+            /**
+             * Имя.
+             */
+            val nameIds =
+                intArrayOf(
+                    R.id.t1_name,
+                    R.id.t2_name,
+                    R.id.t3_name,
+                    R.id.t4_name
+                )
+
+            /**
+             * Адрес.
+             */
+            val addrIds =
+                intArrayOf(
+                    R.id.t1_addr,
+                    R.id.t2_addr,
+                    R.id.t3_addr,
+                    R.id.t4_addr
+                )
+
+            /**
+             * Источник.
+             */
+            val fromIds =
+                intArrayOf(
+                    R.id.t1_from,
+                    R.id.t2_from,
+                    R.id.t3_from,
+                    R.id.t4_from
+                )
+
+            /**
+             * Телефон.
+             */
+            val callIds =
+                intArrayOf(
+                    R.id.t1_call,
+                    R.id.t2_call,
+                    R.id.t3_call,
+                    R.id.t4_call
+                )
+
+            /**
+             * Карта.
+             */
+            val mapIds =
+                intArrayOf(
+                    R.id.t1_map,
+                    R.id.t2_map,
+                    R.id.t3_map,
+                    R.id.t4_map
+                )
+
+            /**
+             * Выполнено.
+             */
+            val doneIds =
+                intArrayOf(
+                    R.id.t1_done,
+                    R.id.t2_done,
+                    R.id.t3_done,
+                    R.id.t4_done
+                )
+
+            /**
+             * Микрофон.
+             */
+            val micIds =
+                intArrayOf(
+                    R.id.t1_mic,
+                    R.id.t2_mic,
+                    R.id.t3_mic,
+                    R.id.t4_mic
+                )
+
+            /**
+             * Сначала скрываем все карточки.
+             *
+             * Это важно для режима 2.
+             */
+            for (i in 0 until 4) {
+
+                try {
+
+                    views.setViewVisibility(
+                        cardIds[i],
+                        View.GONE
+                    )
+
+                } catch (e: Exception) {
+
+                    writeLog(
+                        context,
+                        "hide card $i ERROR: " +
+                                e.stackTraceToString()
+                    )
+                }
+            }
+
+            /**
+             * Заполняем карточки.
+             */
+            if (pageItems.isNotEmpty()) {
+
+                val visibleCount =
+                    minOf(
+                        pageItems.size,
+                        pageSize,
+                        4
+                    )
+
+                for (i in 0 until visibleCount) {
+
+                    val z =
+                        pageItems[i]
+
+                    writeLog(
+                        context,
+                        "CARD START index=$i " +
+                                "zamer=${z.id}"
+                    )
+
+                    try {
+
+                        views.setViewVisibility(
+                            cardIds[i],
+                            View.VISIBLE
+                        )
+
+                        writeLog(
+                            context,
+                            "CARD VISIBLE index=$i"
+                        )
+
+                        fillCard(
+                            views = views,
+                            context = context,
+                            z = z,
+                            timeId = timeIds[i],
+                            nameId = nameIds[i],
+                            addrId = addrIds[i],
+                            fromId = fromIds[i],
+                            callId = callIds[i],
+                            mapId = mapIds[i],
+                            doneId = doneIds[i],
+                            micId = micIds[i],
+                            widgetId = widgetId
+                        )
+
+                        writeLog(
+                            context,
+                            "CARD FINISHED index=$i " +
+                                    "zamer=${z.id}"
+                        )
+
+                    } catch (e: Exception) {
+
+                        writeLog(
+                            context,
+                            "CARD ERROR index=$i " +
+                                    "zamer=${z.id}: " +
+                                    e.stackTraceToString()
+                        )
+                    }
+                }
             }
 
             /**
@@ -735,6 +922,11 @@ class ZamerWidget : AppWidgetProvider() {
                     View.GONE
                 )
 
+                writeLog(
+                    context,
+                    "EMPTY STATE"
+                )
+
             } else {
 
                 views.setViewVisibility(
@@ -747,6 +939,61 @@ class ZamerWidget : AppWidgetProvider() {
                     View.GONE
                 )
 
+                /**
+                 * В режиме 2 карточки 3 и 4
+                 * всегда скрыты.
+                 *
+                 * В режиме 4 они показываются
+                 * только если есть данные.
+                 */
+                if (pageSize == 2) {
+
+                    views.setViewVisibility(
+                        R.id.card_3,
+                        View.GONE
+                    )
+
+                    views.setViewVisibility(
+                        R.id.card_4,
+                        View.GONE
+                    )
+
+                } else {
+
+                    if (pageItems.size >= 3) {
+
+                        views.setViewVisibility(
+                            R.id.card_3,
+                            View.VISIBLE
+                        )
+
+                    } else {
+
+                        views.setViewVisibility(
+                            R.id.card_3,
+                            View.GONE
+                        )
+                    }
+
+                    if (pageItems.size >= 4) {
+
+                        views.setViewVisibility(
+                            R.id.card_4,
+                            View.VISIBLE
+                        )
+
+                    } else {
+
+                        views.setViewVisibility(
+                            R.id.card_4,
+                            View.GONE
+                        )
+                    }
+                }
+
+                /**
+                 * Назад.
+                 */
                 views.setViewVisibility(
                     R.id.btn_prev,
                     if (currentPage > 0) {
@@ -756,6 +1003,9 @@ class ZamerWidget : AppWidgetProvider() {
                     }
                 )
 
+                /**
+                 * Вперёд.
+                 */
                 views.setViewVisibility(
                     R.id.btn_next,
                     if (
@@ -767,172 +1017,6 @@ class ZamerWidget : AppWidgetProvider() {
                         View.GONE
                     }
                 )
-
-                val cardIds =
-                    intArrayOf(
-                        R.id.card_1,
-                        R.id.card_2,
-                        R.id.card_3,
-                        R.id.card_4
-                    )
-
-                val timeIds =
-                    intArrayOf(
-                        R.id.t1_time,
-                        R.id.t2_time,
-                        R.id.t3_time,
-                        R.id.t4_time
-                    )
-
-                val nameIds =
-                    intArrayOf(
-                        R.id.t1_name,
-                        R.id.t2_name,
-                        R.id.t3_name,
-                        R.id.t4_name
-                    )
-
-                val addrIds =
-                    intArrayOf(
-                        R.id.t1_addr,
-                        R.id.t2_addr,
-                        R.id.t3_addr,
-                        R.id.t4_addr
-                    )
-
-                val fromIds =
-                    intArrayOf(
-                        R.id.t1_from,
-                        R.id.t2_from,
-                        R.id.t3_from,
-                        R.id.t4_from
-                    )
-
-                val callIds =
-                    intArrayOf(
-                        R.id.t1_call,
-                        R.id.t2_call,
-                        R.id.t3_call,
-                        R.id.t4_call
-                    )
-
-                val mapIds =
-                    intArrayOf(
-                        R.id.t1_map,
-                        R.id.t2_map,
-                        R.id.t3_map,
-                        R.id.t4_map
-                    )
-
-                val doneIds =
-                    intArrayOf(
-                        R.id.t1_done,
-                        R.id.t2_done,
-                        R.id.t3_done,
-                        R.id.t4_done
-                    )
-
-                val micIds =
-                    intArrayOf(
-                        R.id.t1_mic,
-                        R.id.t2_mic,
-                        R.id.t3_mic,
-                        R.id.t4_mic
-                    )
-
-                /**
-                 * Сначала полностью скрываем карточки.
-                 */
-                for (cardId in cardIds) {
-
-                    try {
-
-                        views.setViewVisibility(
-                            cardId,
-                            View.GONE
-                        )
-
-                    } catch (e: Exception) {
-
-                        writeLog(
-                            context,
-                            "hide card ERROR id=$cardId: " +
-                                    e.stackTraceToString()
-                        )
-                    }
-                }
-
-                /**
-                 * Заполняем карточки.
-                 *
-                 * Каждая карточка изолирована.
-                 * Ошибка одной карточки не должна
-                 * остановить остальные.
-                 */
-                for (i in pageItems.indices) {
-
-                    if (i >= pageSize) {
-                        break
-                    }
-
-                    if (i >= cardIds.size) {
-                        break
-                    }
-
-                    try {
-
-                        writeLog(
-                            context,
-                            "CARD START index=$i " +
-                                    "zamer=${pageItems[i].id}"
-                        )
-
-                        views.setViewVisibility(
-                            cardIds[i],
-                            View.VISIBLE
-                        )
-
-                        fillCard(
-                            views = views,
-                            context = context,
-                            z = pageItems[i],
-                            timeId = timeIds[i],
-                            nameId = nameIds[i],
-                            addrId = addrIds[i],
-                            fromId = fromIds[i],
-                            callId = callIds[i],
-                            mapId = mapIds[i],
-                            doneId = doneIds[i],
-                            micId = micIds[i],
-                            widgetId = widgetId
-                        )
-
-                        writeLog(
-                            context,
-                            "CARD END index=$i " +
-                                    "zamer=${pageItems[i].id}"
-                        )
-
-                    } catch (e: Exception) {
-
-                        writeLog(
-                            context,
-                            "CARD ERROR index=$i " +
-                                    "zamer=${pageItems[i].id}: " +
-                                    e.stackTraceToString()
-                        )
-
-                        try {
-
-                            views.setViewVisibility(
-                                cardIds[i],
-                                View.GONE
-                            )
-
-                        } catch (_: Exception) {
-                        }
-                    }
-                }
             }
 
             /**
@@ -960,11 +1044,16 @@ class ZamerWidget : AppWidgetProvider() {
                     openPendingIntent
                 )
 
+                writeLog(
+                    context,
+                    "open app intent set"
+                )
+
             } catch (e: Exception) {
 
                 writeLog(
                     context,
-                    "open PendingIntent ERROR: " +
+                    "open app intent ERROR: " +
                             e.stackTraceToString()
                 )
             }
@@ -1003,11 +1092,16 @@ class ZamerWidget : AppWidgetProvider() {
                     prevPendingIntent
                 )
 
+                writeLog(
+                    context,
+                    "prev intent set"
+                )
+
             } catch (e: Exception) {
 
                 writeLog(
                     context,
-                    "prev PendingIntent ERROR: " +
+                    "prev intent ERROR: " +
                             e.stackTraceToString()
                 )
             }
@@ -1046,21 +1140,27 @@ class ZamerWidget : AppWidgetProvider() {
                     nextPendingIntent
                 )
 
+                writeLog(
+                    context,
+                    "next intent set"
+                )
+
             } catch (e: Exception) {
 
                 writeLog(
                     context,
-                    "next PendingIntent ERROR: " +
+                    "next intent ERROR: " +
                             e.stackTraceToString()
                 )
             }
 
             /**
-             * Передаём результат Launcher.
+             * Самое важное:
+             * передаём RemoteViews системе.
              */
             writeLog(
                 context,
-                "CALLING updateAppWidget"
+                "calling updateAppWidget"
             )
 
             appWidgetManager.updateAppWidget(
@@ -1089,6 +1189,9 @@ class ZamerWidget : AppWidgetProvider() {
         }
     }
 
+    /**
+     * Заполнение одной карточки.
+     */
     private fun fillCard(
         views: RemoteViews,
         context: Context,
@@ -1109,35 +1212,89 @@ class ZamerWidget : AppWidgetProvider() {
             "fillCard START zamer=${z.id}"
         )
 
-        /**
-         * Время.
-         */
         try {
 
-            views.setTextViewText(
-                timeId,
-                z.timeText()
+            /**
+             * STEP 1.
+             */
+            writeLog(
+                context,
+                "fillCard STEP 1: before time"
             )
 
-            views.setInt(
-                timeId,
-                "setTextColor",
-                statusColor(z.status)
-            )
+            val timeText =
+                try {
+                    z.timeText()
+                } catch (e: Exception) {
 
-        } catch (e: Exception) {
+                    writeLog(
+                        context,
+                        "timeText ERROR: " +
+                                e.stackTraceToString()
+                    )
+
+                    ""
+                }
 
             writeLog(
                 context,
-                "TIME ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 2: timeText='$timeText'"
             )
-        }
 
-        /**
-         * Имя.
-         */
-        try {
+            if (timeText.isNotBlank()) {
+
+                views.setTextViewText(
+                    timeId,
+                    timeText
+                )
+
+            } else {
+
+                views.setTextViewText(
+                    timeId,
+                    "--:--"
+                )
+            }
+
+            writeLog(
+                context,
+                "fillCard STEP 3: time set"
+            )
+
+            /**
+             * Цвет времени.
+             */
+            try {
+
+                views.setInt(
+                    timeId,
+                    "setTextColor",
+                    statusColor(
+                        z.status
+                    )
+                )
+
+                writeLog(
+                    context,
+                    "fillCard STEP 4: color set"
+                )
+
+            } catch (e: Exception) {
+
+                writeLog(
+                    context,
+                    "time color ERROR: " +
+                            e.stackTraceToString()
+                )
+            }
+
+            /**
+             * Имя.
+             */
+            writeLog(
+                context,
+                "fillCard STEP 5: name"
+            )
 
             if (z.name.isNotBlank()) {
 
@@ -1153,25 +1310,24 @@ class ZamerWidget : AppWidgetProvider() {
 
             } else {
 
+                views.setTextViewText(
+                    nameId,
+                    ""
+                )
+
                 views.setViewVisibility(
                     nameId,
                     View.GONE
                 )
             }
 
-        } catch (e: Exception) {
-
+            /**
+             * От кого.
+             */
             writeLog(
                 context,
-                "NAME ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 6: source"
             )
-        }
-
-        /**
-         * От кого.
-         */
-        try {
 
             if (z.contactFrom.isNotBlank()) {
 
@@ -1187,25 +1343,24 @@ class ZamerWidget : AppWidgetProvider() {
 
             } else {
 
+                views.setTextViewText(
+                    fromId,
+                    ""
+                )
+
                 views.setViewVisibility(
                     fromId,
                     View.GONE
                 )
             }
 
-        } catch (e: Exception) {
-
+            /**
+             * Адрес.
+             */
             writeLog(
                 context,
-                "FROM ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 7: address"
             )
-        }
-
-        /**
-         * Адрес.
-         */
-        try {
 
             if (z.address.isNotBlank()) {
 
@@ -1221,25 +1376,24 @@ class ZamerWidget : AppWidgetProvider() {
 
             } else {
 
+                views.setTextViewText(
+                    addrId,
+                    ""
+                )
+
                 views.setViewVisibility(
                     addrId,
                     View.GONE
                 )
             }
 
-        } catch (e: Exception) {
-
+            /**
+             * Телефон.
+             */
             writeLog(
                 context,
-                "ADDRESS ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 8: phone"
             )
-        }
-
-        /**
-         * Телефон.
-         */
-        try {
 
             val phone =
                 z.phone.filter {
@@ -1252,14 +1406,16 @@ class ZamerWidget : AppWidgetProvider() {
                     Intent(
                         Intent.ACTION_DIAL,
                         Uri.parse(
-                            "tel:${Uri.encode(phone)}"
+                            "tel:$phone"
                         )
                     )
 
                 val dialPendingIntent =
                     PendingIntent.getActivity(
                         context,
-                        requestCode(z.id),
+                        requestCode(
+                            z.id
+                        ),
                         dialIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or
                                 PendingIntent.FLAG_IMMUTABLE
@@ -1283,45 +1439,36 @@ class ZamerWidget : AppWidgetProvider() {
                 )
             }
 
-        } catch (e: Exception) {
-
+            /**
+             * Карта.
+             */
             writeLog(
                 context,
-                "CALL ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 9: map"
             )
 
-            try {
-
-                views.setViewVisibility(
-                    callId,
-                    View.GONE
-                )
-
-            } catch (_: Exception) {
-            }
-        }
-
-        /**
-         * Карта.
-         */
-        try {
-
             if (z.address.isNotBlank()) {
+
+                val mapUri =
+                    Uri.parse(
+                        "https://yandex.ru/maps/?text=" +
+                                Uri.encode(
+                                    z.address
+                                )
+                    )
 
                 val mapIntent =
                     Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse(
-                            "https://yandex.ru/maps/?text=" +
-                                    Uri.encode(z.address)
-                        )
+                        mapUri
                     )
 
                 val mapPendingIntent =
                     PendingIntent.getActivity(
                         context,
-                        requestCode(z.id + 1000L),
+                        requestCode(
+                            z.id + 1000L
+                        ),
                         mapIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or
                                 PendingIntent.FLAG_IMMUTABLE
@@ -1345,29 +1492,13 @@ class ZamerWidget : AppWidgetProvider() {
                 )
             }
 
-        } catch (e: Exception) {
-
+            /**
+             * Выполнено.
+             */
             writeLog(
                 context,
-                "MAP ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 10: done"
             )
-
-            try {
-
-                views.setViewVisibility(
-                    mapId,
-                    View.GONE
-                )
-
-            } catch (_: Exception) {
-            }
-        }
-
-        /**
-         * Выполнено.
-         */
-        try {
 
             val doneIntent =
                 Intent(
@@ -1392,7 +1523,9 @@ class ZamerWidget : AppWidgetProvider() {
             val donePendingIntent =
                 PendingIntent.getBroadcast(
                     context,
-                    requestCode(z.id + 2000L),
+                    requestCode(
+                        z.id + 2000L
+                    ),
                     doneIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or
                             PendingIntent.FLAG_IMMUTABLE
@@ -1408,52 +1541,38 @@ class ZamerWidget : AppWidgetProvider() {
                 View.VISIBLE
             )
 
-        } catch (e: Exception) {
-
+            /**
+             * Голосовая запись.
+             */
             writeLog(
                 context,
-                "DONE BUTTON ERROR zamer=${z.id}: " +
-                        e.stackTraceToString()
+                "fillCard STEP 11: voice"
             )
-        }
-
-        /**
-         * Голосовая запись.
-         *
-         * ВАЖНО:
-         * отсутствие файла — это нормальная ситуация.
-         * В этом случае просто скрываем микрофон.
-         */
-        try {
 
             val voicePath =
-                if (z.voiceFile.isNotBlank()) {
+                if (
+                    z.voiceFile.isNotBlank()
+                ) {
                     z.voiceFile
                 } else {
                     "voice_${z.id}.m4a"
                 }
 
             val voiceFile =
-                if (
-                    voicePath.startsWith("/")
-                ) {
-                    File(voicePath)
-                } else {
-                    File(
-                        context.filesDir,
-                        voicePath
-                    )
-                }
+                File(
+                    context.filesDir,
+                    voicePath
+                )
 
             writeLog(
                 context,
                 "voice file=$voicePath " +
                         "exists=${voiceFile.exists()} " +
-                        "length=${if (voiceFile.exists()) voiceFile.length() else 0}"
+                        "size=${voiceFile.length()}"
             )
 
             if (
-                voiceFile.isFile &&
+                voiceFile.exists() &&
                 voiceFile.length() > 0L
             ) {
 
@@ -1474,7 +1593,9 @@ class ZamerWidget : AppWidgetProvider() {
                     val playPendingIntent =
                         PendingIntent.getService(
                             context,
-                            requestCode(z.id + 3000L),
+                            requestCode(
+                                z.id + 3000L
+                            ),
                             playIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT or
                                     PendingIntent.FLAG_IMMUTABLE
@@ -1492,15 +1613,14 @@ class ZamerWidget : AppWidgetProvider() {
 
                     writeLog(
                         context,
-                        "voice playback configured zamer=${z.id}"
+                        "voice pendingIntent set"
                     )
 
                 } catch (e: Exception) {
 
                     writeLog(
                         context,
-                        "VOICE PENDINGINTENT ERROR " +
-                                "zamer=${z.id}: " +
+                        "voice pendingIntent ERROR: " +
                                 e.stackTraceToString()
                     )
 
@@ -1516,37 +1636,27 @@ class ZamerWidget : AppWidgetProvider() {
                     micId,
                     View.GONE
                 )
-
-                writeLog(
-                    context,
-                    "voice unavailable, mic hidden " +
-                            "zamer=${z.id}"
-                )
             }
+
+            writeLog(
+                context,
+                "fillCard SUCCESS zamer=${z.id}"
+            )
 
         } catch (e: Exception) {
 
             writeLog(
                 context,
-                "VOICE ERROR zamer=${z.id}: " +
+                "fillCard ERROR zamer=${z.id}: " +
                         e.stackTraceToString()
             )
 
-            try {
-
-                views.setViewVisibility(
-                    micId,
-                    View.GONE
-                )
-
-            } catch (_: Exception) {
-            }
+            Log.e(
+                TAG,
+                "fillCard error",
+                e
+            )
         }
-
-        writeLog(
-            context,
-            "fillCard SUCCESS zamer=${z.id}"
-        )
     }
 
     private fun requestCode(
