@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
@@ -39,7 +38,6 @@
             android:id="@+id/cards_row_1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="174dp"
             android:orientation="horizontal">
 
             <!-- ================= CARD 1 ================= -->
@@ -125,7 +123,7 @@
                     android:paddingTop="1dp"
                     android:paddingBottom="4dp" />
 
-                <View
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#66FFFFFF" />
@@ -179,7 +177,6 @@
                 </LinearLayout>
 
             </LinearLayout>
-
 
             <!-- ================= CARD 2 ================= -->
 
@@ -256,7 +253,7 @@
                     android:paddingTop="1dp"
                     android:paddingBottom="4dp" />
 
-                <View
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#66FFFFFF" />
@@ -311,14 +308,12 @@
 
         </LinearLayout>
 
-
         <!-- ==================== ROW 2 ==================== -->
 
         <LinearLayout
             android:id="@+id/cards_row_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="174dp"
             android:orientation="horizontal">
 
             <!-- ================= CARD 3 ================= -->
@@ -396,7 +391,7 @@
                     android:paddingTop="1dp"
                     android:paddingBottom="4dp" />
 
-                <View
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#66FFFFFF" />
@@ -448,7 +443,6 @@
                 </LinearLayout>
 
             </LinearLayout>
-
 
             <!-- ================= CARD 4 ================= -->
 
@@ -525,7 +519,7 @@
                     android:paddingTop="1dp"
                     android:paddingBottom="4dp" />
 
-                <View
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#66FFFFFF" />
@@ -582,7 +576,6 @@
 
     </LinearLayout>
 
-
     <!-- ==================== PAGINATION ==================== -->
 
     <LinearLayout
@@ -601,10 +594,11 @@
             android:gravity="center"
             android:includeFontPadding="false" />
 
-        <Space
+        <TextView
             android:layout_width="0dp"
             android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:text="" />
 
         <TextView
             android:layout_width="8dp"
@@ -630,10 +624,11 @@
             android:layout_margin="3dp"
             android:background="@drawable/widget_dot" />
 
-        <Space
+        <TextView
             android:layout_width="0dp"
             android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:text="" />
 
         <TextView
             android:id="@+id/btn_next"
@@ -646,7 +641,6 @@
             android:includeFontPadding="false" />
 
     </LinearLayout>
-
 
     <!-- ==================== EMPTY ==================== -->
 
