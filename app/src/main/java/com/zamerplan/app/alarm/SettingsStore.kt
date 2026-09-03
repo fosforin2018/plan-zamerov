@@ -59,11 +59,18 @@ class SettingsStore(ctx: Context) {
      * 4 = расширенный режим
      *
      * По умолчанию — 2.
+     *
+     * ВАЖНО: экран настроек (SettingsScreen) пишет
+     * значение в ключ "widget_cards_count",
+     * поэтому читаем именно его, а старый ключ
+     * "widget_items_count" оставляем как фолбэк.
      */
     var widgetItemsCount: Int
         get() {
-            val value = prefs.getInt("widget_items_count", 2)
-
+            val value = prefs.getInt(
+                "widget_cards_count",
+                prefs.getInt("widget_items_count", 2)
+            )
             return if (value == 4) {
                 4
             } else {
@@ -73,9 +80,9 @@ class SettingsStore(ctx: Context) {
         set(value) {
             val safeValue =
                 if (value == 4) 4 else 2
-
             prefs.edit()
                 .putInt("widget_items_count", safeValue)
+                .putInt("widget_cards_count", safeValue)
                 .apply()
         }
 }
