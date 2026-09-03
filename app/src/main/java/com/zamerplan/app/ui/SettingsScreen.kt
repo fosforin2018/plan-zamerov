@@ -8,7 +8,6 @@ import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -27,9 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.alarm.SettingsStore
+import com.zamerplan.app.widget.ZamerWidget
 import java.io.File
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -38,87 +36,193 @@ fun SettingsScreen(
     onThemeChanged: () -> Unit
 ) {
     val ctx = LocalContext.current
+
     var ringUri by remember {
         mutableStateOf(store.ringtoneUri)
     }
+
     var bDay by remember {
         mutableStateOf(store.beforeDay)
     }
+
     var b2h by remember {
         mutableStateOf(store.before2h)
     }
+
     var b30 by remember {
         mutableStateOf(store.before30m)
     }
+
     var b10 by remember {
         mutableStateOf(store.before10m)
     }
+
     var customTime by remember {
         mutableStateOf(store.customReminderTime)
     }
+
     var sources by remember {
         mutableStateOf(store.sources.toList())
     }
+
     var newSource by remember {
         mutableStateOf("")
     }
+
     var showLogs by remember {
         mutableStateOf(false)
     }
+
     var logsText by remember {
         mutableStateOf("")
     }
+
     var themeMode by remember {
         mutableStateOf(store.themeMode)
     }
 
+    // ============================================================
+    // НАСТРОЙКИ ВИДЖЕТА
+    // ============================================================
+
+    val widgetPrefs = remember {
+        ctx.getSharedPreferences(
+            "settings",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    var widgetCardsCount by remember {
+        mutableStateOf(
+            widgetPrefs.getInt(
+                "widget_cards_count",
+                2
+            )
+        )
+    }
+
+    fun refreshWidgetWithCardCount(
+        count: Int
+    ) {
+
+        widgetCardsCount = count
+
+        // Сохраняем количество карточек
+        widgetPrefs
+            .edit()
+            .putInt(
+                "widget_cards_count",
+                count
+            )
+            .apply()
+
+        // После смены режима возвращаем виджет
+        // на первую страницу
+        ctx.getSharedPreferences(
+            "widget_page_state",
+            Context.MODE_PRIVATE
+        )
+            .edit()
+            .putInt(
+                "page",
+                0
+            )
+            .apply()
+
+        // Сразу обновляем все установленные виджеты
+        ZamerWidget.refreshAll(ctx)
+    }
+
+    // ============================================================
+    // НАЗВАНИЕ МЕЛОДИИ
+    // ============================================================
+
     fun ringName(): String {
+
         if (ringUri.isBlank()) {
             return "Стандартное уведомление"
         }
+
         return try {
-            val r = RingtoneManager.getRingtone(
-                ctx,
-                Uri.parse(ringUri)
-            )
-            r?.getTitle(ctx) ?: "Выбранная мелодия"
+
+            val ringtone =
+                RingtoneManager.getRingtone(
+                    ctx,
+                    Uri.parse(ringUri)
+                )
+
+            ringtone?.getTitle(ctx)
+                ?: "Выбранная мелодия"
+
         } catch (e: Exception) {
+
             "Выбранная мелодия"
         }
     }
 
-    val picker = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val u: Uri? =
-                result.data?.getParcelableExtra(
-                    RingtoneManager.EXTRA_RINGTONE_PICKED_URI
-                )
-            ringUri = u?.toString() ?: ""
-            store.ringtoneUri = ringUri
+    // ============================================================
+    // ВЫБОР МЕЛОДИИ
+    // ============================================================
+
+    val picker =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+
+            if (
+                result.resultCode ==
+                Activity.RESULT_OK
+            ) {
+
+                val uri: Uri? =
+                    result.data
+                        ?.getParcelableExtra(
+                            RingtoneManager
+                                .EXTRA_RINGTONE_PICKED_URI
+                        )
+
+                ringUri =
+                    uri?.toString()
+                        ?: ""
+
+                store.ringtoneUri =
+                    ringUri
+            }
         }
-    }
+
+    // ============================================================
+    // ОСНОВНОЙ UI
+    // ============================================================
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(
+                rememberScrollState()
+            )
     ) {
-        // ---------------------------------------------------------
+
+        // ========================================================
         // НАЗАД
-        // ---------------------------------------------------------
+        // ========================================================
+
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
+
             TextButton(
                 onClick = onBack
             ) {
-                Text("← Назад")
+
+                Text(
+                    "← Назад"
+                )
             }
+
             Spacer(
-                modifier = Modifier.weight(1f)
+                Modifier.weight(1f)
             )
         }
 
@@ -126,295 +230,732 @@ fun SettingsScreen(
             text = "⚙ Настройки",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier =
+                Modifier.padding(
+                    bottom = 16.dp
+                )
         )
 
-        // ---------------------------------------------------------
-        // ТЕМА
-        // ---------------------------------------------------------
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = DarkCardBg
-            ),
-            border = BorderStroke(
-                1.dp,
-                DarkCardBorder
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Text(
-                    text = "Тема:",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
-                )
-                Spacer(
-                    modifier = Modifier.height(4.dp)
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        onClick = {
-                            themeMode = "system"
-                            store.themeMode = "system"
-                            onThemeChanged()
-                        }
-                    ) {
-                        Text(
-                            text = "Системная",
-                            color =
-                            if (themeMode == "system") {
-                                Orange
-                            } else {
-                                Gray
-                            }
-                        )
-                    }
-                    TextButton(
-                        onClick = {
-                            themeMode = "dark"
-                            store.themeMode = "dark"
-                            onThemeChanged()
-                        }
-                    ) {
-                        Text(
-                            text = "Тёмная",
-                            color =
-                            if (themeMode == "dark") {
-                                Orange
-                            } else {
-                                Gray
-                            }
-                        )
-                    }
-                    TextButton(
-                        onClick = {
-                            themeMode = "light"
-                            store.themeMode = "light"
-                            onThemeChanged()
-                        }
-                    ) {
-                        Text(
-                            text = "Светлая",
-                            color =
-                            if (themeMode == "light") {
-                                Orange
-                            } else {
-                                Gray
-                            }
-                        )
-                    }
-                }
-            }
-        }
+        // ========================================================
+        // ВИДЖЕТ
+        // ========================================================
 
-        // ---------------------------------------------------------
-        // НАПОМИНАНИЯ
-        // ---------------------------------------------------------
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = DarkCardBg
-            ),
-            border = BorderStroke(
-                1.dp,
-                DarkCardBorder
-            )
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
+                )
         ) {
+
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
             ) {
+
                 Text(
-                    text = "Напоминать о замере:",
+                    text = "Виджет",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight =
+                        FontWeight.SemiBold,
                     color = TextPrimary
                 )
+
                 Spacer(
-                    modifier = Modifier.height(4.dp)
+                    Modifier.height(
+                        4.dp
+                    )
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        CheckRowSmall(
-                            label = "За 1 день",
-                            checked = bDay,
-                            onChange = {
-                                bDay = it
-                                store.beforeDay = it
-                            }
-                        )
-                        CheckRowSmall(
-                            label = "За 2 часа",
-                            checked = b2h,
-                            onChange = {
-                                b2h = it
-                                store.before2h = it
-                            }
-                        )
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        CheckRowSmall(
-                            label = "За 30 минут",
-                            checked = b30,
-                            onChange = {
-                                b30 = it
-                                store.before30m = it
-                            }
-                        )
-                        CheckRowSmall(
-                            label = "За 10 минут",
-                            checked = b10,
-                            onChange = {
-                                b10 = it
-                                store.before10m = it
-                            }
-                        )
-                    }
-                }
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
+
                 Text(
-                    text = "Своё время (например, 08:30):",
+                    text =
+                        "Количество замеров на виджете:",
                     fontSize = 13.sp,
                     color = TextSecondary
                 )
-                OutlinedTextField(
-                    value = customTime,
-                    onValueChange = {
-                        customTime = it
-                        store.customReminderTime = it
-                    },
-                    placeholder = {
-                        Text(
-                            text = "ЧЧ:ММ",
-                            color = TextSecondary
+
+                Spacer(
+                    Modifier.height(
+                        8.dp
+                    )
+                )
+
+                // ================================================
+                // 2 КАРТОЧКИ
+                // ================================================
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = 2.dp
+                            ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    RadioButton(
+                        selected =
+                            widgetCardsCount == 2,
+
+                        onClick = {
+
+                            refreshWidgetWithCardCount(
+                                2
+                            )
+                        }
+                    )
+
+                    Spacer(
+                        Modifier.width(
+                            4.dp
                         )
-                    },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
+                    )
+
+                    Column {
+
+                        Text(
+                            text =
+                                "2 замера",
+                            fontSize = 14.sp,
+                            fontWeight =
+                                FontWeight.SemiBold,
+                            color =
+                                TextPrimary
+                        )
+
+                        Text(
+                            text =
+                                "Компактный режим",
+                            fontSize = 12.sp,
+                            color =
+                                TextSecondary
+                        )
+                    }
+                }
+
+                // ================================================
+                // 4 КАРТОЧКИ
+                // ================================================
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = 2.dp
+                            ),
+
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    RadioButton(
+                        selected =
+                            widgetCardsCount == 4,
+
+                        onClick = {
+
+                            refreshWidgetWithCardCount(
+                                4
+                            )
+                        }
+                    )
+
+                    Spacer(
+                        Modifier.width(
+                            4.dp
+                        )
+                    )
+
+                    Column {
+
+                        Text(
+                            text =
+                                "4 замера",
+                            fontSize = 14.sp,
+                            fontWeight =
+                                FontWeight.SemiBold,
+                            color =
+                                TextPrimary
+                        )
+
+                        Text(
+                            text =
+                                "Расширенный режим",
+                            fontSize = 12.sp,
+                            color =
+                                TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(
+                    Modifier.height(
+                        8.dp
+                    )
+                )
+
+                Text(
+                    text =
+                        if (
+                            widgetCardsCount == 2
+                        ) {
+                            "Сейчас выбран компактный виджет: 2 карточки."
+                        } else {
+                            "Сейчас выбран расширенный виджет: 4 карточки."
+                        },
+
+                    fontSize = 12.sp,
+                    color = Orange
                 )
             }
         }
 
-        // ---------------------------------------------------------
-        // ИСТОЧНИКИ
-        // ---------------------------------------------------------
+        // ========================================================
+        // ТЕМА
+        // ========================================================
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = DarkCardBg
-            ),
-            border = BorderStroke(
-                1.dp,
-                DarkCardBorder
-            )
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
+                )
         ) {
+
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
             ) {
+
                 Text(
-                    text = "Источники (От кого):",
+                    text = "Тема:",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        TextPrimary
                 )
+
                 Spacer(
-                    modifier = Modifier.height(8.dp)
+                    Modifier.height(
+                        4.dp
+                    )
                 )
+
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment =
+                        Alignment.CenterVertically
                 ) {
+
+                    TextButton(
+                        onClick = {
+
+                            themeMode =
+                                "system"
+
+                            store.themeMode =
+                                "system"
+
+                            onThemeChanged()
+                        }
+                    ) {
+
+                        Text(
+                            text =
+                                "Системная",
+
+                            color =
+                                if (
+                                    themeMode ==
+                                    "system"
+                                ) {
+                                    Orange
+                                } else {
+                                    Gray
+                                }
+                        )
+                    }
+
+                    TextButton(
+                        onClick = {
+
+                            themeMode =
+                                "dark"
+
+                            store.themeMode =
+                                "dark"
+
+                            onThemeChanged()
+                        }
+                    ) {
+
+                        Text(
+                            text =
+                                "Тёмная",
+
+                            color =
+                                if (
+                                    themeMode ==
+                                    "dark"
+                                ) {
+                                    Orange
+                                } else {
+                                    Gray
+                                }
+                        )
+                    }
+
+                    TextButton(
+                        onClick = {
+
+                            themeMode =
+                                "light"
+
+                            store.themeMode =
+                                "light"
+
+                            onThemeChanged()
+                        }
+                    ) {
+
+                        Text(
+                            text =
+                                "Светлая",
+
+                            color =
+                                if (
+                                    themeMode ==
+                                    "light"
+                                ) {
+                                    Orange
+                                } else {
+                                    Gray
+                                }
+                        )
+                    }
+                }
+            }
+        }
+
+        // ========================================================
+        // НАПОМИНАНИЯ
+        // ========================================================
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
+                )
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "Напоминать о замере:",
+                    fontSize = 15.sp,
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        TextPrimary
+                )
+
+                Spacer(
+                    Modifier.height(
+                        4.dp
+                    )
+                )
+
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+
+                    Column(
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+                    ) {
+
+                        CheckRowSmall(
+                            label =
+                                "За 1 день",
+                            checked =
+                                bDay
+                        ) {
+
+                            bDay = it
+                            store.beforeDay =
+                                it
+                        }
+
+                        CheckRowSmall(
+                            label =
+                                "За 2 часа",
+                            checked =
+                                b2h
+                        ) {
+
+                            b2h = it
+                            store.before2h =
+                                it
+                        }
+                    }
+
+                    Column(
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            )
+                    ) {
+
+                        CheckRowSmall(
+                            label =
+                                "За 30 минут",
+                            checked =
+                                b30
+                        ) {
+
+                            b30 = it
+                            store.before30m =
+                                it
+                        }
+
+                        CheckRowSmall(
+                            label =
+                                "За 10 минут",
+                            checked =
+                                b10
+                        ) {
+
+                            b10 = it
+                            store.before10m =
+                                it
+                        }
+                    }
+                }
+
+                Spacer(
+                    Modifier.height(
+                        8.dp
+                    )
+                )
+
+                Text(
+                    text =
+                        "Своё время (например, 08:30):",
+                    fontSize = 13.sp,
+                    color =
+                        TextSecondary
+                )
+
+                OutlinedTextField(
+                    value =
+                        customTime,
+
+                    onValueChange = {
+
+                        customTime = it
+
+                        store.customReminderTime =
+                            it
+                    },
+
+                    placeholder = {
+
+                        Text(
+                            text =
+                                "ЧЧ:ММ",
+                            color =
+                                TextSecondary
+                        )
+                    },
+
+                    singleLine = true,
+
+                    textStyle =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                top = 4.dp
+                            )
+                )
+            }
+        }
+
+        // ========================================================
+        // ИСТОЧНИКИ
+        // ========================================================
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
+                )
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "Источники (От кого):",
+                    fontSize = 15.sp,
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        TextPrimary
+                )
+
+                Spacer(
+                    Modifier.height(
+                        8.dp
+                    )
+                )
+
+                Row(
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
                     OutlinedTextField(
-                        value = newSource,
+                        value =
+                            newSource,
+
                         onValueChange = {
-                            newSource = it
+
+                            newSource =
+                                it
                         },
+
                         placeholder = {
+
                             Text(
-                                text = "Имя",
-                                color = TextSecondary
+                                text =
+                                    "Имя",
+                                color =
+                                    TextSecondary
                             )
                         },
-                        modifier = Modifier.weight(1f),
-                        textStyle = MaterialTheme.typography.bodySmall
+
+                        modifier =
+                            Modifier.weight(
+                                1f
+                            ),
+
+                        textStyle =
+                            MaterialTheme
+                                .typography
+                                .bodySmall
                     )
+
                     Spacer(
-                        modifier = Modifier.width(8.dp)
+                        Modifier.width(
+                            8.dp
+                        )
                     )
+
                     Button(
                         onClick = {
-                            if (newSource.isNotBlank()) {
+
+                            if (
+                                newSource
+                                    .isNotBlank()
+                            ) {
+
                                 val updated =
-                                    sources + newSource.trim()
-                                sources = updated
+                                    sources +
+                                    newSource
+                                        .trim()
+
+                                sources =
+                                    updated
+
                                 store.sources =
-                                    updated.toSet()
-                                newSource = ""
+                                    updated
+                                        .toSet()
+
+                                newSource =
+                                    ""
                             }
                         },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Orange
-                        )
+
+                        shape =
+                            RoundedCornerShape(
+                                8.dp
+                            ),
+
+                        colors =
+                            ButtonDefaults
+                                .buttonColors(
+                                    containerColor =
+                                        Orange
+                                )
                     ) {
+
                         Text(
-                            text = "Добавить",
-                            color = Color.White
+                            text =
+                                "Добавить",
+                            color =
+                                Color.White
                         )
                     }
                 }
-                if (sources.isNotEmpty()) {
+
+                if (
+                    sources.isNotEmpty()
+                ) {
+
                     Spacer(
-                        modifier = Modifier.height(8.dp)
+                        Modifier.height(
+                            8.dp
+                        )
                     )
-                    sources.forEach { source ->
+
+                    sources.forEach {
+                        source ->
+
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        vertical =
+                                            2.dp
+                                    ),
+
                             verticalAlignment =
-                            Alignment.CenterVertically
+                                Alignment
+                                    .CenterVertically
                         ) {
+
                             Text(
-                                text = "• $source",
-                                color = TextPrimary,
-                                modifier = Modifier.weight(1f)
+                                text =
+                                    "• $source",
+
+                                color =
+                                    TextPrimary,
+
+                                modifier =
+                                    Modifier.weight(
+                                        1f
+                                    )
                             )
+
                             IconButton(
                                 onClick = {
+
                                     val updated =
-                                        sources - source
-                                    sources = updated
+                                        sources -
+                                        source
+
+                                    sources =
+                                        updated
+
                                     store.sources =
-                                        updated.toSet()
+                                        updated
+                                            .toSet()
                                 }
                             ) {
+
                                 Text(
-                                    text = "✕",
-                                    color = Red
+                                    text =
+                                        "✕",
+                                    color =
+                                        Red
                                 )
                             }
                         }
@@ -423,321 +964,562 @@ fun SettingsScreen(
             }
         }
 
-        // ---------------------------------------------------------
+        // ========================================================
         // МЕЛОДИЯ
-        // ---------------------------------------------------------
+        // ========================================================
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = DarkCardBg
-            ),
-            border = BorderStroke(
-                1.dp,
-                DarkCardBorder
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Text(
-                    text = "Мелодия:",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
                 )
+        ) {
+
+            Column(
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
+            ) {
+
+                Text(
+                    text =
+                        "Мелодия:",
+                    fontSize = 15.sp,
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        TextPrimary
+                )
+
                 TextButton(
                     onClick = {
+
                         val intent =
                             Intent(
-                                RingtoneManager.ACTION_RINGTONE_PICKER
+                                RingtoneManager
+                                    .ACTION_RINGTONE_PICKER
                             ).apply {
+
                                 putExtra(
-                                    RingtoneManager.EXTRA_RINGTONE_TYPE,
-                                    RingtoneManager.TYPE_NOTIFICATION
+                                    RingtoneManager
+                                        .EXTRA_RINGTONE_TYPE,
+
+                                    RingtoneManager
+                                        .TYPE_NOTIFICATION
                                 )
+
                                 putExtra(
-                                    RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT,
+                                    RingtoneManager
+                                        .EXTRA_RINGTONE_SHOW_DEFAULT,
                                     true
                                 )
+
                                 putExtra(
-                                    RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT,
+                                    RingtoneManager
+                                        .EXTRA_RINGTONE_SHOW_SILENT,
                                     true
                                 )
-                                if (ringUri.isNotBlank()) {
+
+                                if (
+                                    ringUri
+                                        .isNotBlank()
+                                ) {
+
                                     putExtra(
-                                        RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
-                                        Uri.parse(ringUri)
+                                        RingtoneManager
+                                            .EXTRA_RINGTONE_EXISTING_URI,
+
+                                        Uri.parse(
+                                            ringUri
+                                        )
                                     )
                                 }
                             }
-                        picker.launch(intent)
+
+                        picker.launch(
+                            intent
+                        )
                     }
                 ) {
+
                     Text(
-                        text = "🎵 " + ringName(),
-                        color = Orange
+                        text =
+                            "🎵 ${ringName()}",
+                        color =
+                            Orange
                     )
                 }
             }
         }
 
-        // ---------------------------------------------------------
+        // ========================================================
         // РАЗРЕШЕНИЯ
-        // ---------------------------------------------------------
+        // ========================================================
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = DarkCardBg
-            ),
-            border = BorderStroke(
-                1.dp,
-                DarkCardBorder
-            )
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
+                )
         ) {
+
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
             ) {
+
                 Text(
-                    text = "💡 Разрешения",
+                    text =
+                        "💡 Разрешения",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        TextPrimary
                 )
+
                 Text(
-                    text = "Если напоминания не срабатывают — разрешите точные будильники:",
+                    text =
+                        "Если напоминания не срабатывают — разрешите точные будильники:",
                     fontSize = 12.sp,
-                    color = TextSecondary
+                    color =
+                        TextSecondary
                 )
+
                 TextButton(
                     onClick = {
+
                         try {
+
                             ctx.startActivity(
                                 Intent(
-                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                    Settings
+                                        .ACTION_APPLICATION_DETAILS_SETTINGS
                                 ).apply {
-                                    data = Uri.fromParts(
-                                        "package",
-                                        ctx.packageName,
-                                        null
-                                    )
+
+                                    data =
+                                        Uri.fromParts(
+                                            "package",
+                                            ctx.packageName,
+                                            null
+                                        )
                                 }
                             )
-                        } catch (e: Exception) {
-                            // Ничего не делаем
+
+                        } catch (
+                            e: Exception
+                        ) {
+
+                            // ничего не делаем
                         }
                     }
                 ) {
+
                     Text(
-                        text = "Открыть настройки приложения",
-                        color = Orange
+                        text =
+                            "Открыть настройки приложения",
+                        color =
+                            Orange
                     )
                 }
             }
         }
 
-        // ---------------------------------------------------------
+        // ========================================================
         // ЛОГИ ВИДЖЕТА
-        // ---------------------------------------------------------
+        // ========================================================
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = DarkCardBg
-            ),
-            border = BorderStroke(
-                1.dp,
-                DarkCardBorder
-            )
+                .padding(
+                    vertical = 8.dp
+                ),
+
+            shape =
+                RoundedCornerShape(
+                    16.dp
+                ),
+
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        DarkCardBg
+                ),
+
+            border =
+                BorderStroke(
+                    1.dp,
+                    DarkCardBorder
+                )
         ) {
+
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier =
+                    Modifier.padding(
+                        12.dp
+                    )
             ) {
+
                 Text(
-                    text = "Отладка виджета",
+                    text =
+                        "Диагностика виджета",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    fontWeight =
+                        FontWeight.SemiBold,
+                    color =
+                        TextPrimary
                 )
+
                 Spacer(
-                    modifier = Modifier.height(4.dp)
+                    Modifier.height(
+                        4.dp
+                    )
                 )
+
                 Text(
-                    text = "Логи нужны для проверки работы виджета.",
+                    text =
+                        "Логи помогут понять, почему виджет не обновляется или не показывает карточки.",
                     fontSize = 12.sp,
-                    color = TextSecondary
+                    color =
+                        TextSecondary
                 )
+
                 Spacer(
-                    modifier = Modifier.height(4.dp)
+                    Modifier.height(
+                        6.dp
+                    )
                 )
+
                 TextButton(
                     onClick = {
-                        val file = File(
-                            ctx.filesDir,
-                            "widget_log.txt"
-                        )
+
+                        val file =
+                            File(
+                                ctx.filesDir,
+                                "widget_log.txt"
+                            )
+
                         logsText =
-                            if (file.exists()) {
+                            if (
+                                file.exists()
+                            ) {
+
                                 try {
+
                                     file.readText()
-                                } catch (e: Exception) {
-                                    "Ошибка чтения логов:\n${e.message}"
+
+                                } catch (
+                                    e: Exception
+                                ) {
+
+                                    "Не удалось прочитать файл логов:\n${e.message}"
                                 }
+
                             } else {
+
                                 "Файл логов не найден"
                             }
-                        showLogs = true
+
+                        showLogs =
+                            true
                     }
                 ) {
+
                     Text(
-                        text = "📋 Показать логи виджета",
-                        color = Blue
+                        text =
+                            "📋 Показать логи виджета",
+                        color =
+                            Blue
                     )
                 }
             }
         }
+
+        Spacer(
+            Modifier.height(
+                20.dp
+            )
+        )
     }
 
-    // =============================================================
-    // ОКНО ЛОГОВ С ПРОКРУТКОЙ, КОПИРОВАНИЕМ И ОЧИСТКОЙ
-    // =============================================================
-    if (showLogs) {
-        val logScrollState = rememberScrollState()
-        val lineCount = if (logsText.isBlank()) 0 else logsText.lines().size
-        val hasManyLines = lineCount > 15
+    // ============================================================
+    // ОКНО ЛОГОВ
+    // ============================================================
+
+    if (
+        showLogs
+    ) {
 
         AlertDialog(
-            onDismissRequest = { showLogs = false },
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Логи виджета",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "$lineCount строк",
-                        fontSize = 11.sp,
-                        color = TextSecondary
-                    )
-                }
+
+            onDismissRequest = {
+
+                showLogs =
+                    false
             },
+
+            title = {
+
+                Text(
+                    text =
+                        "Логи виджета",
+                    fontWeight =
+                        FontWeight.Bold
+                )
+            },
+
             text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Индикатор прокрутки
-                    if (hasManyLines) {
-                        Text(
-                            text = "↕ Прокрутите для просмотра всех логов",
-                            fontSize = 11.sp,
-                            color = Orange,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                    }
+
+                Column {
 
                     Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 300.dp, max = 500.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF111111),
-                        border = BorderStroke(1.dp, Color(0xFF333333))
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(
+                                    max = 420.dp
+                                ),
+
+                        shape =
+                            RoundedCornerShape(
+                                10.dp
+                            ),
+
+                        color =
+                            Color.Black.copy(
+                                alpha = 0.18f
+                            )
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(logScrollState)
-                                .padding(12.dp)
-                        ) {
-                            Text(
-                                text = if (logsText.isBlank()) {
-                                    "Логи пока отсутствуют"
+
+                        Text(
+                            text =
+                                if (
+                                    logsText.isBlank()
+                                ) {
+                                    "Логи пустые"
                                 } else {
                                     logsText
                                 },
-                                color = Color(0xFFEAEAEA),
-                                fontSize = 11.sp,
-                                lineHeight = 16.sp,
-                                fontFamily = FontFamily.Monospace
+
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(
+                                        rememberScrollState()
+                                    )
+                                    .padding(
+                                        10.dp
+                                    ),
+
+                            fontSize =
+                                11.sp,
+
+                            lineHeight =
+                                14.sp,
+
+                            fontFamily =
+                                FontFamily.Monospace
+                        )
+                    }
+
+                    Spacer(
+                        Modifier.height(
+                            8.dp
+                        )
+                    )
+
+                    val linesCount =
+                        if (
+                            logsText.isBlank()
+                        ) {
+                            0
+                        } else {
+                            logsText
+                                .lines()
+                                .size
+                        }
+
+                    Text(
+                        text =
+                            "Строк: $linesCount",
+                        fontSize =
+                            11.sp,
+                        color =
+                            TextSecondary
+                    )
+
+                    Spacer(
+                        Modifier.height(
+                            6.dp
+                        )
+                    )
+
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth(),
+
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                6.dp
+                            )
+                    ) {
+
+                        // ==========================================
+                        // КОПИРОВАТЬ ВСЕ ЛОГИ
+                        // ==========================================
+
+                        OutlinedButton(
+                            modifier =
+                                Modifier.weight(
+                                    1f
+                                ),
+
+                            onClick = {
+
+                                try {
+
+                                    val clipboard =
+                                        ctx.getSystemService(
+                                            Context
+                                                .CLIPBOARD_SERVICE
+                                        ) as ClipboardManager
+
+                                    val clip =
+                                        ClipData.newPlainText(
+                                            "Логи виджета",
+                                            logsText
+                                        )
+
+                                    clipboard
+                                        .setPrimaryClip(
+                                            clip
+                                        )
+
+                                } catch (
+                                    e: Exception
+                                ) {
+
+                                    // Не падаем,
+                                    // даже если clipboard недоступен
+                                }
+                            }
+                        ) {
+
+                            Text(
+                                text =
+                                    "Скопировать всё",
+                                fontSize =
+                                    12.sp
+                            )
+                        }
+
+                        // ==========================================
+                        // ОЧИСТИТЬ ЛОГИ
+                        // ==========================================
+
+                        OutlinedButton(
+                            modifier =
+                                Modifier.weight(
+                                    1f
+                                ),
+
+                            onClick = {
+
+                                try {
+
+                                    val file =
+                                        File(
+                                            ctx.filesDir,
+                                            "widget_log.txt"
+                                        )
+
+                                    if (
+                                        file.exists()
+                                    ) {
+
+                                        file.writeText(
+                                            ""
+                                        )
+                                    }
+
+                                    logsText =
+                                        ""
+
+                                } catch (
+                                    e: Exception
+                                ) {
+
+                                    logsText =
+                                        "Ошибка очистки логов:\n${e.message}"
+                                }
+                            }
+                        ) {
+
+                            Text(
+                                text =
+                                    "Очистить",
+                                fontSize =
+                                    12.sp
                             )
                         }
                     }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // Кнопка прокрутки вниз
-                    if (hasManyLines) {
-                        TextButton(
-                            onClick = {
-                                MainScope().launch {
-                                    logScrollState.animateScrollTo(logScrollState.maxValue)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("⬇ Прокрутить в конец", color = Orange, fontSize = 12.sp)
-                        }
-                    }
                 }
             },
+
             confirmButton = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Кнопка копирования
-                    Button(
-                        onClick = {
-                            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Логи виджета", logsText))
-                            Toast.makeText(ctx, "Все логи скопированы в буфер обмена", Toast.LENGTH_SHORT).show()
-                        },
-                        enabled = logsText.isNotBlank(),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
-                    ) {
-                        Text("📋 Копировать", fontSize = 12.sp)
-                    }
 
-                    // Кнопка очистки
-                    Button(
-                        onClick = {
-                            val file = File(ctx.filesDir, "widget_log.txt")
-                            try {
-                                if (file.exists()) {
-                                    file.writeText("")
-                                }
-                                logsText = ""
-                                Toast.makeText(ctx, "Логи очищены", Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(ctx, "Не удалось очистить логи", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        enabled = logsText.isNotBlank(),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Red)
-                    ) {
-                        Text("🗑 Очистить", fontSize = 12.sp)
+                TextButton(
+                    onClick = {
+
+                        showLogs =
+                            false
                     }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogs = false }) {
-                    Text("Закрыть")
+                ) {
+
+                    Text(
+                        text =
+                            "Закрыть"
+                    )
                 }
             }
         )
@@ -745,29 +1527,46 @@ fun SettingsScreen(
 }
 
 // ================================================================
-// СТРОКА CHECKBOX
+// МАЛЕНЬКИЙ ЧЕКБОКС
 // ================================================================
+
 @Composable
 fun CheckRowSmall(
     label: String,
     checked: Boolean,
     onChange: (Boolean) -> Unit
 ) {
+
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(
-            vertical = 2.dp
-        )
+        verticalAlignment =
+            Alignment.CenterVertically,
+
+        modifier =
+            Modifier.padding(
+                vertical = 2.dp
+            )
     ) {
+
         Checkbox(
-            checked = checked,
-            onCheckedChange = onChange,
-            modifier = Modifier.size(24.dp)
+            checked =
+                checked,
+
+            onCheckedChange =
+                onChange,
+
+            modifier =
+                Modifier.size(
+                    24.dp
+                )
         )
+
         Text(
-            text = label,
-            fontSize = 12.sp,
-            color = TextPrimary
+            text =
+                label,
+            fontSize =
+                12.sp,
+            color =
+                TextPrimary
         )
     }
 }
