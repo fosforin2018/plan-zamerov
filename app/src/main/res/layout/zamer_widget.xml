@@ -590,25 +590,31 @@
             android:layout_weight="1"
             android:text="" />
 
+        <!-- ТОЧКИ: получили ID, код сам красит нужную -->
+
         <TextView
+            android:id="@+id/w_dot_1"
             android:layout_width="8dp"
             android:layout_height="8dp"
             android:layout_margin="3dp"
             android:background="@drawable/widget_dot_active" />
 
         <TextView
+            android:id="@+id/w_dot_2"
             android:layout_width="8dp"
             android:layout_height="8dp"
             android:layout_margin="3dp"
             android:background="@drawable/widget_dot" />
 
         <TextView
+            android:id="@+id/w_dot_3"
             android:layout_width="8dp"
             android:layout_height="8dp"
             android:layout_margin="3dp"
             android:background="@drawable/widget_dot" />
 
         <TextView
+            android:id="@+id/w_dot_4"
             android:layout_width="8dp"
             android:layout_height="8dp"
             android:layout_margin="3dp"
