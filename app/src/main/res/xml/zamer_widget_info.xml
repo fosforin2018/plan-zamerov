@@ -4,7 +4,7 @@
      пересобери и добавь виджет заново. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="300dp"
-    android:minHeight="270dp"
+    android:minHeight="250dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/zamer_widget"
     android:resizeMode="horizontal|vertical"
