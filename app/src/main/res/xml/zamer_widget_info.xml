@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ЭКСПЕРИМЕНТ: компактная рамка (вариант 1).
+     ОТКАТ: замени minHeight обратно на 440dp,
+     пересобери и добавь виджет заново. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="300dp"
-    android:minHeight="440dp"
+    android:minHeight="270dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/zamer_widget"
     android:resizeMode="horizontal|vertical"
