@@ -40,7 +40,7 @@ import com.zamerplan.app.widget.ZamerWidget
 import java.io.File
 
 // ================================================================
-// ФОРМАТ ПОДПИСИ СЛОТА: "За 2 часа", "За 30 минут", "За 1 день"
+// ПОДПИСИ СЛОТОВ: "За 2 часа", "За 30 минут", "За 1 день"
 // ================================================================
 
 private fun plural(n: Int, one: String, few: String, many: String): String {
@@ -74,7 +74,7 @@ private fun parseHHMM(s: String): Pair<Int, Int> {
 }
 
 // ================================================================
-// БАРАБАН С ЦИФРАМИ (колесо с прокруткой и прищёлкиванием)
+// БАРАБАН: 3 цифры (соседняя / активная / соседняя)
 // ================================================================
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -84,10 +84,13 @@ fun WheelNumberPicker(
     onValueChange: (Int) -> Unit,
     range: IntRange,
     enabled: Boolean = true,
+    digitColor: Color = TextSecondary,
+    activeColor: Color = Orange,
+    bgColor: Color = Color.White.copy(alpha = 0.08f),
     modifier: Modifier = Modifier
 ) {
-    val itemHeight = 36.dp
-    val side = 2
+    val itemHeight = 32.dp
+    val side = 1
     val values = remember(range) { (range.first..range.last).toList() }
     val listState = rememberLazyListState()
     val fling = rememberSnapFlingBehavior(lazyListState = listState)
@@ -113,12 +116,9 @@ fun WheelNumberPicker(
 
     Box(
         modifier = modifier
-            .width(64.dp)
-            .height(itemHeight * 5)
-            .background(
-                Color.White.copy(alpha = if (enabled) 0.08f else 0.03f),
-                RoundedCornerShape(12.dp)
-            )
+            .width(56.dp)
+            .height(itemHeight * 3)
+            .background(bgColor, RoundedCornerShape(10.dp))
             .alpha(if (enabled) 1f else 0.4f)
     ) {
         if (enabled) {
@@ -139,9 +139,9 @@ fun WheelNumberPicker(
                     ) {
                         Text(
                             v.toString().padStart(2, '0'),
-                            fontSize = if (selected) 18.sp else 14.sp,
+                            fontSize = if (selected) 16.sp else 12.sp,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selected) Orange else TextSecondary
+                            color = if (selected) activeColor else digitColor
                         )
                     }
                 }
@@ -151,25 +151,24 @@ fun WheelNumberPicker(
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     value.toString().padStart(2, '0'),
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondary
+                    color = digitColor
                 )
             }
         }
-        // Рамка активного центра
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth()
                 .height(itemHeight)
-                .border(1.dp, Orange.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                .border(1.dp, activeColor.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
         )
     }
 }
 
 // ================================================================
-// ОКНО ИЗМЕНЕНИЯ СЛОТА НАПОМИНАНИЯ
+// ОКНО ИЗМЕНЕНИЯ СЛОТА (цвета из темы — видно в светлой теме)
 // ================================================================
 
 @Composable
@@ -178,6 +177,10 @@ private fun OffsetDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit
 ) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val chipBg = MaterialTheme.colorScheme.surfaceVariant
+
     var num by remember {
         mutableStateOf(
             when {
@@ -212,8 +215,8 @@ private fun OffsetDialog(
         onDismissRequest = onDismiss,
         title = { Text("Напоминание", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Быстро:", fontSize = 13.sp, color = TextSecondary)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Быстро:", fontSize = 12.sp, color = onSurfaceVariant)
                 quick.chunked(4).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         row.forEach { (m, label) ->
@@ -221,7 +224,7 @@ private fun OffsetDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .background(
-                                        if (minutes == m) Orange else Color.White.copy(alpha = 0.08f),
+                                        if (minutes == m) Orange else chipBg,
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {
@@ -231,40 +234,44 @@ private fun OffsetDialog(
                                             else -> { unit = "m"; num = m }
                                         }
                                     }
-                                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                                    .padding(horizontal = 2.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     label,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     maxLines = 1,
-                                    color = if (minutes == m) Color.White else TextPrimary
+                                    color = if (minutes == m) Color.White else onSurface
                                 )
                             }
                         }
                     }
                 }
-                Text("Или точно:", fontSize = 13.sp, color = TextSecondary)
+                Text("Или точно:", fontSize = 12.sp, color = onSurfaceVariant)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     WheelNumberPicker(
                         value = num,
                         onValueChange = { num = it },
-                        range = 1..59
+                        range = 1..59,
+                        digitColor = onSurfaceVariant,
+                        bgColor = chipBg
                     )
-                    Column {
-                        listOf("m" to "Минут", "h" to "Часов", "d" to "Дней").forEach { (u, label) ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(modifier = Modifier.weight(1f)) {
+                        listOf("m" to "Мин", "h" to "Час", "d" to "Дн").forEach { (u, label) ->
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 RadioButton(selected = unit == u, onClick = { unit = u })
-                                Spacer(Modifier.width(4.dp))
-                                Text(label, fontSize = 13.sp, color = TextPrimary)
+                                Text(label, fontSize = 11.sp, color = onSurface)
                             }
                         }
                     }
                 }
-                Text("Получится: ${offsetLabel(minutes)}", fontSize = 13.sp, color = Orange)
+                Text("Получится: ${offsetLabel(minutes)}", fontSize = 12.sp, color = Orange)
             }
         },
         confirmButton = {
@@ -304,6 +311,9 @@ fun SettingsScreen(
     }
     var editSlot by remember { mutableStateOf<Int?>(null) }
 
+    // Гармошка: по умолчанию СВЁРНУТО
+    var remindersExpanded by remember { mutableStateOf(false) }
+
     // Своё время
     var customOn by remember { mutableStateOf(store.customTimeOn) }
     val initTime = remember { parseHHMM(store.customReminderTime) }
@@ -323,6 +333,22 @@ fun SettingsScreen(
         store.customReminderTime =
             h.toString().padStart(2, '0') + ":" + m.toString().padStart(2, '0')
         reschedule()
+    }
+
+    // Краткая сводка для свёрнутой шапки
+    val summary = buildString {
+        val active = (1..4).filter { slotOn[it - 1] }
+            .map { offsetLabel(slotMin[it - 1]).replaceFirstChar { c -> c.lowercase() } }
+        if (active.isEmpty()) append("напоминания выкл")
+        else append(active.joinToString(", "))
+        if (customOn) {
+            append(" · своё " + customH.toString().padStart(2, '0') + ":" + customM.toString().padStart(2, '0'))
+        }
+        append(" · " + when (playMode) {
+            "voice" -> "голос"
+            "ring" -> "мелодия"
+            else -> "голос + мелодия"
+        })
     }
 
     // ============================================================
@@ -379,7 +405,7 @@ fun SettingsScreen(
             Spacer(Modifier.weight(1f))
         }
         Text(
-            text = " Настройки",
+            text = "⚙ Настройки",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -452,7 +478,7 @@ fun SettingsScreen(
         }
 
         // ========================================================
-        // НАПОМИНАНИЯ И ЗВУК (объединённый блок)
+        // НАПОМИНАНИЯ И ЗВУК (гармошка, свёрнута по умолчанию)
         // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -461,111 +487,136 @@ fun SettingsScreen(
             border = BorderStroke(1.dp, DarkCardBorder)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("🔔 Напоминания и звук", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                Spacer(Modifier.height(4.dp))
-
-                // ---------- СЛОТЫ ----------
-                (1..4).forEach { i ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = slotOn[i - 1],
-                            onCheckedChange = { v ->
-                                slotOn = slotOn.toMutableList().also { it[i - 1] = v }
-                                store.setSlotOn(i, v)
-                                reschedule()
-                            },
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = offsetLabel(slotMin[i - 1]),
-                            fontSize = 13.sp,
-                            color = if (slotOn[i - 1]) TextPrimary else TextSecondary,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { editSlot = i }
-                        )
-                        TextButton(onClick = { editSlot = i }) { Text("✏", color = Orange) }
-                    }
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                // ---------- СВОЁ ВРЕМЯ ----------
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = customOn,
-                        onCheckedChange = { v ->
-                            customOn = v
-                            store.customTimeOn = v
-                            reschedule()
-                        }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "Своё время: " +
-                            customH.toString().padStart(2, '0') + ":" +
-                            customM.toString().padStart(2, '0'),
-                        fontSize = 13.sp,
-                        color = if (customOn) TextPrimary else TextSecondary
-                    )
-                }
+                // ---------- ШАПКА-ГАРМОШКА ----------
                 Row(
-                    modifier = Modifier.padding(start = 8.dp, top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { remindersExpanded = !remindersExpanded },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    WheelNumberPicker(
-                        value = customH,
-                        onValueChange = { v -> customH = v; saveCustomTime(v, customM) },
-                        range = 0..23,
-                        enabled = customOn
+                    Text(
+                        "🔔 Напоминания и звук",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f)
                     )
-                    Text(":", color = TextPrimary, fontSize = 18.sp)
-                    WheelNumberPicker(
-                        value = customM,
-                        onValueChange = { v -> customM = v; saveCustomTime(customH, v) },
-                        range = 0..59,
-                        enabled = customOn
-                    )
+                    Text(if (remindersExpanded) "▲" else "▼", color = Orange, fontSize = 14.sp)
                 }
+                Spacer(Modifier.height(2.dp))
+                Text(summary, fontSize = 12.sp, color = TextSecondary)
 
-                Spacer(Modifier.height(10.dp))
+                // ---------- РАСКРЫТОЕ СОДЕРЖИМОЕ ----------
+                if (remindersExpanded) {
+                    Spacer(Modifier.height(8.dp))
 
-                // ---------- ЧТО ПРОИГРЫВАТЬ ----------
-                Text("Что проигрывать:", fontSize = 13.sp, color = TextSecondary)
-                listOf(
-                    "voice_ring" to "Голос + мелодия",
-                    "voice" to "Только голос",
-                    "ring" to "Только мелодия"
-                ).forEach { (mode, label) ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = playMode == mode,
-                            onClick = { playMode = mode; store.playMode = mode }
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(label, fontSize = 13.sp, color = TextPrimary)
-                    }
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // ---------- МЕЛОДИЯ ----------
-                TextButton(onClick = {
-                    val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                        if (ringUri.isNotBlank()) {
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(ringUri))
+                    // Слоты
+                    (1..4).forEach { i ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = slotOn[i - 1],
+                                onCheckedChange = { v ->
+                                    slotOn = slotOn.toMutableList().also { it[i - 1] = v }
+                                    store.setSlotOn(i, v)
+                                    reschedule()
+                                },
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = offsetLabel(slotMin[i - 1]),
+                                fontSize = 13.sp,
+                                color = if (slotOn[i - 1]) TextPrimary else TextSecondary,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { editSlot = i }
+                            )
+                            TextButton(onClick = { editSlot = i }) { Text("✏", color = Orange) }
                         }
                     }
-                    picker.launch(intent)
-                }) {
-                    Text("🎵 ${ringName()}", color = Orange)
+
+                    Spacer(Modifier.height(6.dp))
+
+                    // Своё время: тумблер + барабаны в ОДНУ строку
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(
+                            checked = customOn,
+                            onCheckedChange = { v ->
+                                customOn = v
+                                store.customTimeOn = v
+                                reschedule()
+                            }
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "Своё время",
+                            fontSize = 12.sp,
+                            color = if (customOn) TextPrimary else TextSecondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        WheelNumberPicker(
+                            value = customH,
+                            onValueChange = { v -> customH = v; saveCustomTime(v, customM) },
+                            range = 0..23,
+                            enabled = customOn
+                        )
+                        Text(":", color = TextPrimary, fontSize = 16.sp)
+                        WheelNumberPicker(
+                            value = customM,
+                            onValueChange = { v -> customM = v; saveCustomTime(customH, v) },
+                            range = 0..59,
+                            enabled = customOn
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    // Что проигрывать: 3 чипа в ОДНУ строку
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf(
+                            "voice_ring" to "Голос+мелод.",
+                            "voice" to "Только голос",
+                            "ring" to "Только мелод."
+                        ).forEach { (mode, label) ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(
+                                        if (playMode == mode) Orange else Color.White.copy(alpha = 0.08f),
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable { playMode = mode; store.playMode = mode }
+                                    .padding(vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    label,
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    color = if (playMode == mode) Color.White else TextPrimary
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Мелодия
+                    TextButton(onClick = {
+                        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                            if (ringUri.isNotBlank()) {
+                                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(ringUri))
+                            }
+                        }
+                        picker.launch(intent)
+                    }) {
+                        Text("🎵 ${ringName()}", color = Orange)
+                    }
                 }
             }
         }
@@ -701,7 +752,7 @@ fun SettingsScreen(
     }
 
     // ============================================================
-    // ОКНО ЛОГОВ
+    // ОКНО ЛОГОВ (цвета из темы)
     // ============================================================
     if (showLogs) {
         AlertDialog(
@@ -722,12 +773,13 @@ fun SettingsScreen(
                                 .padding(10.dp),
                             fontSize = 11.sp,
                             lineHeight = 14.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Spacer(Modifier.height(8.dp))
                     val linesCount = if (logsText.isBlank()) 0 else logsText.lines().size
-                    Text("Строк: $linesCount", fontSize = 11.sp, color = TextSecondary)
+                    Text("Строк: $linesCount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
