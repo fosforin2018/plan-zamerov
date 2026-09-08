@@ -11,8 +11,6 @@ import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.zamerplan.app.MainActivity
 import com.zamerplan.app.model.Storage
@@ -20,6 +18,7 @@ import com.zamerplan.app.model.ZamerStatus
 import java.io.File
 
 class ReminderReceiver : BroadcastReceiver() {
+
     override fun onReceive(ctx: Context, intent: Intent) {
         val id = intent.getLongExtra("zamer_id", 0L)
         if (id == 0L) return
@@ -40,10 +39,8 @@ class ReminderReceiver : BroadcastReceiver() {
             Intent(ctx, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val title = "📏 Замер: " + (z.name.ifBlank { z.address })
         val text = z.timeText() + " · " + z.address
-
         val n = NotificationCompat.Builder(ctx, chId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
@@ -53,17 +50,39 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentIntent(tap)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
-
         nm.notify(id.toInt() and 0x7FFFFFFF, n)
 
-        // Голос → потом мелодия
+        // ============================================
+        // ЧТО ПРОИГРЫВАТЬ (по настройке playMode)
+        // ============================================
+        val settings = SettingsStore(ctx)
         val voice = File(ctx.filesDir, "voice_$id.m4a")
-        if (voice.exists()) {
-            playAudio(voice.absolutePath) {
-                playRingtone(ctx, SettingsStore(ctx).ringtoneUri)
+        val hasVoice = voice.exists() && voice.length() > 0L
+
+        when (settings.playMode) {
+            "voice" -> {
+                // Только голос. Если записи нет —
+                // fallback на мелодию, чтобы не было тишины
+                if (hasVoice) {
+                    playAudio(voice.absolutePath) { }
+                } else {
+                    playRingtone(ctx, settings.ringtoneUri)
+                }
             }
-        } else {
-            playRingtone(ctx, SettingsStore(ctx).ringtoneUri)
+            "ring" -> {
+                // Только мелодия
+                playRingtone(ctx, settings.ringtoneUri)
+            }
+            else -> {
+                // Голос + мелодия (поведение по умолчанию)
+                if (hasVoice) {
+                    playAudio(voice.absolutePath) {
+                        playRingtone(ctx, settings.ringtoneUri)
+                    }
+                } else {
+                    playRingtone(ctx, settings.ringtoneUri)
+                }
+            }
         }
     }
 
