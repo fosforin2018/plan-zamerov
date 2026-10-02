@@ -25,8 +25,6 @@ class SettingsStore(ctx: Context) {
 
     /*
      * Виджет: 2 или 4 карточки.
-     * Экран настроек пишет "widget_cards_count",
-     * старый ключ оставляем как фолбэк.
      */
     var widgetItemsCount: Int
         get() {
@@ -44,13 +42,9 @@ class SettingsStore(ctx: Context) {
                 .apply()
         }
 
-    /*
-     * ============================================
+    /* ============================================
      * СЛОТЫ НАПОМИНАНИЙ (1..4)
-     * ============================================
-     * У каждого слота: включён ли он и за сколько
-     * минут до замера он срабатывает.
-     */
+     * ============================================ */
 
     fun slotOn(index: Int): Boolean =
         prefs.getBoolean("rem${index}_on", defaultSlotOn(index))
@@ -84,11 +78,6 @@ class SettingsStore(ctx: Context) {
         else -> 60
     }
 
-    /*
-     * Одноразовая миграция старых галочек
-     * (b_day, b_2h, b_30m, b_10m) в новые слоты,
-     * чтобы ничего не потерялось при обновлении.
-     */
     private fun migrateReminders() {
         if (prefs.getBoolean("rem_migrated", false)) return
         prefs.edit()
@@ -104,11 +93,9 @@ class SettingsStore(ctx: Context) {
             .apply()
     }
 
-    /*
-     * ============================================
-     * СВОЁ ВРЕМЯ (точное время в день замера)
-     * ============================================
-     */
+    /* ============================================
+     * СВОЁ ВРЕМЯ
+     * ============================================ */
 
     var customTimeOn: Boolean
         get() = prefs.getBoolean("custom_time_on", false)
@@ -118,15 +105,19 @@ class SettingsStore(ctx: Context) {
         get() = prefs.getString("custom_reminder_time", "") ?: ""
         set(value) = prefs.edit().putString("custom_reminder_time", value).apply()
 
-    /*
-     * ============================================
-     * ЧТО ПРОИГРЫВАТЬ
-     * ============================================
-     * "voice_ring" = голос + мелодия (по умолчанию)
-     * "voice"      = только голос
-     * "ring"       = только мелодия
-     */
+    /* ============================================
+     * ЧТО ПРОИГРЫВАТЬ: voice_ring | voice | ring
+     * ============================================ */
+
     var playMode: String
         get() = prefs.getString("play_mode", "voice_ring") ?: "voice_ring"
         set(value) = prefs.edit().putString("play_mode", value).apply()
+
+    /* ============================================
+     * АВТОКОПИЯ В ОБЛАКА
+     * ============================================ */
+
+    var autoBackup: Boolean
+        get() = prefs.getBoolean("auto_backup", false)
+        set(value) = prefs.edit().putBoolean("auto_backup", value).apply()
 }
