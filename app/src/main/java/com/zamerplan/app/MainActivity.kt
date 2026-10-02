@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import com.zamerplan.app.alarm.ReminderScheduler
 import com.zamerplan.app.alarm.SettingsStore
 import com.zamerplan.app.alarm.VoiceRecorder
+import com.zamerplan.app.backup.BackupManager
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
@@ -42,6 +43,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+
     private lateinit var storage: Storage
     private lateinit var settings: SettingsStore
     private val zamers = mutableStateListOf<Zamer>()
@@ -51,15 +53,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         storage = Storage(this)
         settings = SettingsStore(this)
-        reloadZamers()  // загружаем данные при старте
-
+        reloadZamers()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
             }
         }
-        ReminderScheduler.scheduleAll(this, zamers, settings)  // только при старте
-
+        ReminderScheduler.scheduleAll(this, zamers, settings)
+        BackupManager.startPeriodic(this) // проверка каждые 15 минут
         val themeMode = settings.themeMode
         setContent {
             val darkTheme = when (themeMode) {
@@ -79,8 +80,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Перезагружаем данные, но НЕ пересоздаём будильники
         reloadZamers()
+        // Догнать копию, если данные менялись без приложения
+        BackupManager.onAppForeground(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Свернули приложение — немедленно дозаписать изменения
+        BackupManager.onAppBackground(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        BackupManager.stopPeriodic()
     }
 
     private fun reloadZamers() {
@@ -100,24 +113,27 @@ class MainActivity : ComponentActivity() {
                 onSave = { z ->
                     zamers.add(z)
                     storage.save(zamers)
-                    ReminderScheduler.scheduleAll(this, zamers, settings)  // при создании
+                    ReminderScheduler.scheduleAll(this, zamers, settings)
                     ZamerWidget.refreshAll(this)
+                    BackupManager.onDataChanged(this)
                 },
                 onUpdate = { z ->
                     val i = zamers.indexOfFirst { it.id == z.id }
                     if (i >= 0) {
                         zamers[i] = z
-                        ReminderScheduler.schedule(this, z, settings)  // при обновлении
+                        ReminderScheduler.schedule(this, z, settings)
                     }
                     storage.save(zamers)
                     ZamerWidget.refreshAll(this)
+                    BackupManager.onDataChanged(this)
                 },
                 onDelete = { z ->
                     storage.deleteVoice(z.id)
-                    ReminderScheduler.cancel(this, z.id)  // при удалении
+                    ReminderScheduler.cancel(this, z.id)
                     zamers.removeAll { it.id == z.id }
                     storage.save(zamers)
                     ZamerWidget.refreshAll(this)
+                    BackupManager.onDataChanged(this)
                 }
             )
         } else {
@@ -145,7 +161,6 @@ fun MainScreen(
     var showForm by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Zamer?>(null) }
     var rescheduleTarget by remember { mutableStateOf<Zamer?>(null) }
-
     val sources = settings.sources.toList()
     val context = LocalContext.current
 
@@ -203,7 +218,6 @@ fun MainScreen(
                 Text("План замеров", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 TextButton(onClick = onOpenSettings) { Text("⚙") }
             }
-
             CollapsibleCalendar(
                 selectedDate = selectedDate,
                 onSelectDate = { selectedDate = it },
@@ -211,7 +225,6 @@ fun MainScreen(
                 onMonthChange = { month = it },
                 countsByDay = counts
             )
-
             Text(
                 selectedDate.format(DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"))) +
                     " · замеров: " + dayList.size + " · " + daySum + " ₽",
@@ -219,7 +232,6 @@ fun MainScreen(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
             )
-
             if (dayList.isEmpty()) {
                 Text(
                     "Нет замеров на этот день. Нажмите «+», чтобы добавить.",
@@ -227,7 +239,6 @@ fun MainScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
             if (dayList.size == 1) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                     CardSlot(dayList[0])
@@ -255,7 +266,6 @@ fun MainScreen(
             sources = sources
         )
     }
-
     editTarget?.let { z ->
         ZamerFormDialog(
             initialDate = z.date,
@@ -267,7 +277,6 @@ fun MainScreen(
             sources = sources
         )
     }
-
     rescheduleTarget?.let { z ->
         RescheduleDialog(
             onMove = { d -> onUpdate(z.copy(date = d, status = ZamerStatus.PLANNED)); rescheduleTarget = null },
