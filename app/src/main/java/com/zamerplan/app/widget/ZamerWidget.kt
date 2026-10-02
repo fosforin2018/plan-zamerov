@@ -14,6 +14,7 @@ import com.zamerplan.app.MainActivity
 import com.zamerplan.app.R
 import com.zamerplan.app.alarm.ReminderScheduler
 import com.zamerplan.app.alarm.SettingsStore
+import com.zamerplan.app.backup.BackupManager
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.model.Zamer
 import com.zamerplan.app.model.ZamerStatus
@@ -131,6 +132,8 @@ class ZamerWidget : AppWidgetProvider() {
                                 writeLog(appContext, "ReminderScheduler.cancel ERROR: " + e.stackTraceToString())
                             }
                             refreshAll(appContext)
+                            // Помечаем данные как изменённые для автокопии
+                            BackupManager.onDataChanged(appContext)
                         }
                     }
                 }
@@ -294,13 +297,10 @@ class ZamerWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.w_empty, View.VISIBLE)
                 views.setViewVisibility(R.id.btn_prev, View.GONE)
                 views.setViewVisibility(R.id.btn_next, View.GONE)
-
-                // ФИКС ПАГИНАЦИИ: в пустом состоянии точки скрыты
                 views.setViewVisibility(R.id.w_dot_1, View.GONE)
                 views.setViewVisibility(R.id.w_dot_2, View.GONE)
                 views.setViewVisibility(R.id.w_dot_3, View.GONE)
                 views.setViewVisibility(R.id.w_dot_4, View.GONE)
-
                 writeLog(context, "EMPTY STATE")
             } else {
                 views.setViewVisibility(R.id.cards_container, View.VISIBLE)
@@ -326,11 +326,7 @@ class ZamerWidget : AppWidgetProvider() {
                     )
                 }
 
-                // =====================================================
-                // ФИКС ПАГИНАЦИИ №1: стрелки стали INVISIBLE.
-                // Кнопка не видна, НО сохраняет место —
-                // поэтому точки больше не смещаются.
-                // =====================================================
+                // Стрелки: INVISIBLE, чтобы точки не смещались
                 views.setViewVisibility(
                     R.id.btn_prev,
                     if (currentPage > 0) View.VISIBLE else View.INVISIBLE
@@ -340,11 +336,8 @@ class ZamerWidget : AppWidgetProvider() {
                     if (currentPage < totalPages - 1) View.VISIBLE else View.INVISIBLE
                 )
 
-                // =====================================================
-                // ФИКС ПАГИНАЦИИ №2: точки стоят на месте,
-                // активная страница — оранжевая,
-                // лишние точки (сверх числа страниц) скрыты.
-                // =====================================================
+                // Точки: стоят на месте, активная — оранжевая,
+                // лишние сверх числа страниц скрыты
                 val dotIds = intArrayOf(
                     R.id.w_dot_1,
                     R.id.w_dot_2,
