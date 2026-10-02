@@ -20,16 +20,6 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-/**
- * Резервное копирование базы замеров и голосовых
- * в облака пользователя через SAF (Яндекс Диск,
- * Google Диск, Облако Mail.ru и любые другие).
- *
- * Копия = один zip-файл:
- *   zamers.json  — база замеров
- *   meta.json    — версия формата, дата, счётчики
- *   voices/*.m4a — голосовые заметки
- */
 object BackupManager {
 
     const val FORMAT_VERSION = 1
@@ -58,9 +48,7 @@ object BackupManager {
 
     data class RestoreResult(val ok: Boolean, val message: String)
 
-    // ============================================================
-    // СПИСОК ПОДКЛЮЧЁННЫХ ОБЛАКОВ
-    // ============================================================
+    // --- СПИСОК ОБЛАКОВ ---
 
     fun destinations(ctx: Context): List<Destination> {
         val prefs = ctx.getSharedPreferences("backup_destinations", Context.MODE_PRIVATE)
@@ -143,9 +131,7 @@ object BackupManager {
         else -> uri.authority ?: "Облако"
     }
 
-    // ============================================================
-    // СБОРКА КОПИИ
-    // ============================================================
+    // --- СБОРКА КОПИИ ---
 
     private fun appVersion(ctx: Context): String = try {
         ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
@@ -196,7 +182,6 @@ object BackupManager {
         return meta
     }
 
-    /** Проверяем архив перед записью в облако: не затираем хорошую копию битой. */
     private fun verifyZip(file: File): Boolean = try {
         ZipFile(file).use { zf ->
             val entry = zf.getEntry("zamers.json") ?: return false
@@ -206,9 +191,7 @@ object BackupManager {
         }
     } catch (e: Exception) { false }
 
-    // ============================================================
-    // СОЗДАНИЕ КОПИЙ ВО ВСЕ ОБЛАКА
-    // ============================================================
+    // --- СОЗДАНИЕ КОПИЙ ВО ВСЕ ОБЛАКА ---
 
     fun backupAll(ctx: Context): List<BackupResult> {
         val dests = destinations(ctx)
@@ -235,7 +218,6 @@ object BackupManager {
                     results.add(BackupResult(d, false, msg))
                 }
             }
-            // Есть успешная запись — изменения считаем скопированными
             if (results.any { it.ok }) clearDirty(ctx)
         } catch (e: Exception) {
             dests.forEach { results.add(BackupResult(it, false, "ошибка сборки: ${e.message}")) }
@@ -251,9 +233,7 @@ object BackupManager {
         } ?: throw java.io.IOException("не удалось открыть поток записи")
     }
 
-    // ============================================================
-    // ЧТЕНИЕ META ИЗ КОПИИ
-    // ============================================================
+    // --- ЧТЕНИЕ META ИЗ КОПИИ ---
 
     fun readMeta(ctx: Context, uri: Uri): BackupMeta? = try {
         ctx.contentResolver.openInputStream(uri)?.use { ins -> readMetaFromStream(ins) }
@@ -280,9 +260,7 @@ object BackupManager {
         }
     }
 
-    // ============================================================
-    // ВОССТАНОВЛЕНИЕ
-    // ============================================================
+    // --- ВОССТАНОВЛЕНИЕ ---
 
     fun restore(ctx: Context, uri: Uri): RestoreResult {
         val tmp = File(ctx.cacheDir, "restore_tmp.zip")
@@ -306,7 +284,6 @@ object BackupManager {
                 return RestoreResult(false, "копия создана более новой версией приложения — сначала обновите приложение")
             }
 
-            // Локальная страховка текущих данных перед заменой
             try {
                 buildZip(ctx, File(ctx.filesDir, "local_safety.zip"))
             } catch (e: Exception) { }
@@ -321,7 +298,7 @@ object BackupManager {
                     when {
                         entry.name == "zamers.json" -> {
                             val text = zf.getInputStream(entry).bufferedReader().use { it.readText() }
-                            val arr = JSONArray(text) // валидация: бросит исключение, если мусор
+                            val arr = JSONArray(text)
                             ctx.getSharedPreferences("zamer_storage", Context.MODE_PRIVATE)
                                 .edit().putString("zamers_json", text).apply()
                             restoredZamers = arr.length()
@@ -345,22 +322,9 @@ object BackupManager {
         }
     }
 
-    // ============================================================
-    // АВТОКОПИЯ: умный движок
-    // ============================================================
-    //
-    // Правила:
-    //  1) Любое изменение данных -> onDataChanged():
-    //     ставится флаг dirty и планируется отложенная отправка.
-    //  2) Debounce 20 сек: серия изменений = ОДНА отправка.
-    //  3) Троттлинг: авто-отправка не чаще раза в 5 минут.
-    //  4) Уход в фон (onStop) -> немедленная дозапись (force).
-    //  5) Возврат в приложение (onResume) -> проверка накопленного.
-    //  6) Пока приложение открыто -> проверка каждые 15 минут.
-    //  7) Облако недоступно -> dirty НЕ сбрасывается, повтор
-    //     при следующем срабатывании.
-    //  8) Ручная кнопка -> backupAll() напрямую, без ограничений.
-    // ============================================================
+    // --- АВТОКОПИЯ ---
+    // Debounce 20 сек, троттлинг 5 мин, проверка каждые 15 мин,
+    // дозапись при сворачивании, догоняющая при открытии.
 
     private const val DEBOUNCE_MS = 20_000L
     private const val PERIODIC_MS = 15 * 60_000L
@@ -383,7 +347,6 @@ object BackupManager {
             .apply()
     }
 
-    /** Вызывать после ЛЮБОГО изменения данных (save/delete/виджет). */
     fun onDataChanged(ctx: Context) {
         val app = ctx.applicationContext
         statePrefs(app).edit().putBoolean("dirty", true).apply()
@@ -393,7 +356,6 @@ object BackupManager {
         handler.postDelayed(r, DEBOUNCE_MS)
     }
 
-    /** Запуск периодической проверки (onCreate). */
     fun startPeriodic(ctx: Context) {
         stopPeriodic()
         val app = ctx.applicationContext
@@ -407,28 +369,21 @@ object BackupManager {
         handler.postDelayed(r, PERIODIC_MS)
     }
 
-    /** Останов периодичности (onDestroy). */
     fun stopPeriodic() {
         periodicRunnable?.let { handler.removeCallbacks(it) }
         periodicRunnable = null
     }
 
-    /** Приложение открыли (onResume): догнать накопленное в фоне. */
     fun onAppForeground(ctx: Context) {
         flush(ctx.applicationContext, force = false)
     }
 
-    /** Приложение сворачивают (onStop): немедленно дозаписать. */
     fun onAppBackground(ctx: Context) {
         debounceRunnable?.let { handler.removeCallbacks(it) }
         debounceRunnable = null
         flush(ctx.applicationContext, force = true)
     }
 
-    /**
-     * Фактическая авто-отправка в фоновом потоке.
-     * force = игнорировать троттлинг (уход в фон).
-     */
     fun flush(ctx: Context, force: Boolean) {
         Thread {
             try {
@@ -440,7 +395,7 @@ object BackupManager {
                     val last = statePrefs(ctx).getLong("last_wall_at", 0L)
                     if (System.currentTimeMillis() - last < THROTTLE_MS) return@Thread
                 }
-                backupAll(ctx) // при успехе сам сбросит dirty
+                backupAll(ctx)
             } catch (e: Exception) { }
         }.start()
     }
