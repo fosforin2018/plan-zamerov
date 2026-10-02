@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,12 +37,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.alarm.ReminderScheduler
 import com.zamerplan.app.alarm.SettingsStore
+import com.zamerplan.app.backup.BackupManager
 import com.zamerplan.app.model.Storage
 import com.zamerplan.app.widget.ZamerWidget
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // ================================================================
-// ПОДПИСИ СЛОТОВ: "За 2 часа", "За 30 минут", "За 1 день"
+// ПОДПИСИ СЛОТОВ
 // ================================================================
 
 private fun plural(n: Int, one: String, few: String, many: String): String {
@@ -73,8 +79,12 @@ private fun parseHHMM(s: String): Pair<Int, Int> {
     return Pair(h.coerceIn(0, 23), m.coerceIn(0, 59))
 }
 
+private fun fmtBackupTime(ms: Long): String =
+    if (ms == 0L) "копии ещё нет"
+    else SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ms))
+
 // ================================================================
-// БАРАБАН: 3 цифры (соседняя / активная / соседняя)
+// БАРАБАН: 3 цифры
 // ================================================================
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -168,7 +178,7 @@ fun WheelNumberPicker(
 }
 
 // ================================================================
-// ОКНО ИЗМЕНЕНИЯ СЛОТА (цвета из темы — видно в светлой теме)
+// ОКНО ИЗМЕНЕНИЯ СЛОТА
 // ================================================================
 
 @Composable
@@ -294,15 +304,14 @@ fun SettingsScreen(
     onThemeChanged: () -> Unit
 ) {
     val ctx = LocalContext.current
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
-    // Любое изменение напоминаний сразу пересоздаёт будильники
     fun reschedule() {
         ReminderScheduler.scheduleAll(ctx, Storage(ctx).load(), store)
     }
 
     var ringUri by remember { mutableStateOf(store.ringtoneUri) }
 
-    // Слоты напоминаний
     var slotOn by remember {
         mutableStateOf(listOf(store.slotOn(1), store.slotOn(2), store.slotOn(3), store.slotOn(4)))
     }
@@ -310,17 +319,13 @@ fun SettingsScreen(
         mutableStateOf(listOf(store.slotMinutes(1), store.slotMinutes(2), store.slotMinutes(3), store.slotMinutes(4)))
     }
     var editSlot by remember { mutableStateOf<Int?>(null) }
-
-    // Гармошка: по умолчанию СВЁРНУТО
     var remindersExpanded by remember { mutableStateOf(false) }
 
-    // Своё время
     var customOn by remember { mutableStateOf(store.customTimeOn) }
     val initTime = remember { parseHHMM(store.customReminderTime) }
     var customH by remember { mutableStateOf(initTime.first) }
     var customM by remember { mutableStateOf(initTime.second) }
 
-    // Режим проигрывания
     var playMode by remember { mutableStateOf(store.playMode) }
 
     var sources by remember { mutableStateOf(store.sources.toList()) }
@@ -329,13 +334,92 @@ fun SettingsScreen(
     var logsText by remember { mutableStateOf("") }
     var themeMode by remember { mutableStateOf(store.themeMode) }
 
+    // ==================== РЕЗЕРВНЫЕ КОПИИ ====================
+    var dests by remember { mutableStateOf(BackupManager.destinations(ctx)) }
+    var autoBackup by remember { mutableStateOf(store.autoBackup) }
+    var backupBusy by remember { mutableStateOf(false) }
+    var showReport by remember { mutableStateOf(false) }
+    var lastReport by remember { mutableStateOf("") }
+    var showRestoreSource by remember { mutableStateOf(false) }
+    var showRestoreConfirm by remember { mutableStateOf(false) }
+    var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var restoreMeta by remember { mutableStateOf<BackupManager.BackupMeta?>(null) }
+
     fun saveCustomTime(h: Int, m: Int) {
         store.customReminderTime =
             h.toString().padStart(2, '0') + ":" + m.toString().padStart(2, '0')
         reschedule()
     }
 
-    // Краткая сводка для свёрнутой шапки
+    fun runBackup() {
+        if (backupBusy) return
+        backupBusy = true
+        Thread {
+            val results = BackupManager.backupAll(ctx)
+            val newDests = BackupManager.destinations(ctx)
+            val report = if (results.isEmpty()) {
+                "Сначала подключите облако: «➕ Добавить»"
+            } else {
+                results.joinToString("\n") { r ->
+                    (if (r.ok) "✓ " else "⚠ ") + r.destination.name +
+                        if (r.ok) " — копия обновлена" else " — " + r.message
+                }
+            }
+            mainHandler.post {
+                backupBusy = false
+                dests = newDests
+                lastReport = report
+                showReport = true
+            }
+        }.start()
+    }
+
+    fun prepareRestore(uri: Uri) {
+        val meta = BackupManager.readMeta(ctx, uri)
+        restoreUri = uri
+        restoreMeta = meta
+        if (meta == null) {
+            lastReport = "Файл не похож на копию «План замеров» или повреждён"
+            showReport = true
+        } else {
+            showRestoreConfirm = true
+        }
+    }
+
+    fun runRestore(uri: Uri) {
+        if (backupBusy) return
+        backupBusy = true
+        Thread {
+            val r = BackupManager.restore(ctx, uri)
+            mainHandler.post {
+                backupBusy = false
+                if (r.ok) {
+                    ReminderScheduler.scheduleAll(ctx, Storage(ctx).load(), store)
+                    ZamerWidget.refreshAll(ctx)
+                }
+                lastReport = r.message
+                showReport = true
+            }
+        }.start()
+    }
+
+    val createLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) {
+            val name = BackupManager.displayName(ctx, uri)
+            BackupManager.addDestination(ctx, uri, name)
+            dests = BackupManager.destinations(ctx)
+            runBackup()
+        }
+    }
+
+    val openLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) prepareRestore(uri)
+    }
+
     val summary = buildString {
         val active = (1..4).filter { slotOn[it - 1] }
             .map { offsetLabel(slotMin[it - 1]).replaceFirstChar { c -> c.lowercase() } }
@@ -364,9 +448,6 @@ fun SettingsScreen(
         ZamerWidget.refreshAll(ctx)
     }
 
-    // ============================================================
-    // НАЗВАНИЕ МЕЛОДИИ
-    // ============================================================
     fun ringName(): String {
         if (ringUri.isBlank()) return "Стандартное уведомление"
         return try {
@@ -377,9 +458,6 @@ fun SettingsScreen(
         }
     }
 
-    // ============================================================
-    // ВЫБОР МЕЛОДИИ
-    // ============================================================
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -478,7 +556,7 @@ fun SettingsScreen(
         }
 
         // ========================================================
-        // НАПОМИНАНИЯ И ЗВУК (гармошка, свёрнута по умолчанию)
+        // НАПОМИНАНИЯ И ЗВУК (гармошка)
         // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -487,7 +565,6 @@ fun SettingsScreen(
             border = BorderStroke(1.dp, DarkCardBorder)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                // ---------- ШАПКА-ГАРМОШКА ----------
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -506,11 +583,8 @@ fun SettingsScreen(
                 Spacer(Modifier.height(2.dp))
                 Text(summary, fontSize = 12.sp, color = TextSecondary)
 
-                // ---------- РАСКРЫТОЕ СОДЕРЖИМОЕ ----------
                 if (remindersExpanded) {
                     Spacer(Modifier.height(8.dp))
-
-                    // Слоты
                     (1..4).forEach { i ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
@@ -539,7 +613,6 @@ fun SettingsScreen(
 
                     Spacer(Modifier.height(6.dp))
 
-                    // Своё время: тумблер + барабаны в ОДНУ строку
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(
                             checked = customOn,
@@ -573,7 +646,6 @@ fun SettingsScreen(
 
                     Spacer(Modifier.height(6.dp))
 
-                    // Что проигрывать: 3 чипа в ОДНУ строку
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf(
                             "voice_ring" to "Голос+мелод.",
@@ -603,7 +675,6 @@ fun SettingsScreen(
 
                     Spacer(Modifier.height(4.dp))
 
-                    // Мелодия
                     TextButton(onClick = {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
@@ -617,6 +688,107 @@ fun SettingsScreen(
                     }) {
                         Text("🎵 ${ringName()}", color = Orange)
                     }
+                }
+            }
+        }
+
+        // ========================================================
+        // РЕЗЕРВНЫЕ КОПИИ (облака)
+        // ========================================================
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = DarkCardBg),
+            border = BorderStroke(1.dp, DarkCardBorder)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("☁️ Резервные копии", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "База замеров и голосовые хранятся в ваших облаках: Яндекс Диск, Google Диск, Облако Mail.ru и др.",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+                Spacer(Modifier.height(8.dp))
+
+                if (dests.isEmpty()) {
+                    Text(
+                        "Пока нет подключённых облак. Нажмите «➕ Добавить» и в открывшемся окне выберите своё облако.",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                } else {
+                    dests.forEach { d ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                if (d.lastError.isBlank()) "✓" else "⚠",
+                                fontSize = 14.sp,
+                                color = if (d.lastError.isBlank()) Green else Red
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(d.name, fontSize = 13.sp, color = TextPrimary, maxLines = 1)
+                                Text(
+                                    if (d.lastError.isBlank()) "копия: " + fmtBackupTime(d.lastOk)
+                                    else d.lastError,
+                                    fontSize = 11.sp,
+                                    color = if (d.lastError.isBlank()) TextSecondary else Red
+                                )
+                            }
+                            IconButton(onClick = {
+                                BackupManager.removeDestination(ctx, d.uri)
+                                dests = BackupManager.destinations(ctx)
+                            }) { Text("✕", color = Red) }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Button(
+                        onClick = { createLauncher.launch(BackupManager.FILE_NAME) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Orange)
+                    ) { Text("➕ Добавить", fontSize = 12.sp, color = Color.White, maxLines = 1) }
+                    Button(
+                        onClick = { runBackup() },
+                        modifier = Modifier.weight(1f),
+                        enabled = !backupBusy && dests.isNotEmpty(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Green)
+                    ) { Text("📤 Копии", fontSize = 12.sp, color = Color.White, maxLines = 1) }
+                    Button(
+                        onClick = { showRestoreSource = true },
+                        modifier = Modifier.weight(1f),
+                        enabled = !backupBusy,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
+                    ) { Text("📥 Вернуть", fontSize = 12.sp, color = Color.White, maxLines = 1) }
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = autoBackup,
+                        onCheckedChange = { v -> autoBackup = v; store.autoBackup = v }
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Автокопия при изменениях",
+                        fontSize = 12.sp,
+                        color = if (autoBackup) TextPrimary else TextSecondary
+                    )
+                }
+
+                if (backupBusy) {
+                    Spacer(Modifier.height(6.dp))
+                    Text("⏳ Идёт копирование…", fontSize = 12.sp, color = Orange)
                 }
             }
         }
@@ -752,7 +924,95 @@ fun SettingsScreen(
     }
 
     // ============================================================
-    // ОКНО ЛОГОВ (цвета из темы)
+    // ОТКУДА ВОССТАНОВИТЬ
+    // ============================================================
+    if (showRestoreSource) {
+        AlertDialog(
+            onDismissRequest = { showRestoreSource = false },
+            title = { Text("Откуда восстановить", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    dests.forEach { d ->
+                        TextButton(
+                            onClick = {
+                                showRestoreSource = false
+                                prepareRestore(Uri.parse(d.uri))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("☁️ " + d.name, color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            showRestoreSource = false
+                            openLauncher.launch(arrayOf("*/*"))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📂 Выбрать другой файл…", color = Orange, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showRestoreSource = false }) { Text("Отмена") }
+            }
+        )
+    }
+
+    // ============================================================
+    // ПОДТВЕРЖДЕНИЕ ВОССТАНОВЛЕНИЯ
+    // ============================================================
+    if (showRestoreConfirm && restoreMeta != null && restoreUri != null) {
+        val meta = restoreMeta!!
+        val uri = restoreUri!!
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false },
+            title = { Text("Восстановить данные?", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Копия от: ${meta.createdAt}", fontSize = 13.sp)
+                    Text("Замеров в копии: ${meta.zamerCount}", fontSize = 13.sp)
+                    Text("Голосовых в копии: ${meta.voiceCount}", fontSize = 13.sp)
+                    if (meta.appVersion.isNotBlank()) {
+                        Text("Версия приложения: ${meta.appVersion}", fontSize = 12.sp, color = TextSecondary)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "ВНИМАНИЕ: текущие замеры и голосовые на этом устройстве будут ПОЛНОСТЬЮ заменены данными из копии.",
+                        fontSize = 12.sp,
+                        color = Red
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRestoreConfirm = false
+                    runRestore(uri)
+                }) { Text("Восстановить", color = Red) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirm = false }) { Text("Отмена") }
+            }
+        )
+    }
+
+    // ============================================================
+    // ОТЧЁТ О КОПИРОВАНИИ / ВОССТАНОВЛЕНИИ
+    // ============================================================
+    if (showReport) {
+        AlertDialog(
+            onDismissRequest = { showReport = false },
+            title = { Text("Резервное копирование", fontWeight = FontWeight.Bold) },
+            text = { Text(lastReport, fontSize = 13.sp) },
+            confirmButton = {
+                TextButton(onClick = { showReport = false }) { Text("ОК") }
+            }
+        )
+    }
+
+    // ============================================================
+    // ОКНО ЛОГОВ
     // ============================================================
     if (showLogs) {
         AlertDialog(
