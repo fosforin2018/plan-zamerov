@@ -344,6 +344,8 @@ fun SettingsScreen(
     var showRestoreConfirm by remember { mutableStateOf(false) }
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
     var restoreMeta by remember { mutableStateOf<BackupManager.BackupMeta?>(null) }
+    var showCloudPicker by remember { mutableStateOf(false) }
+    var cloudRoots by remember { mutableStateOf<List<BackupManager.CloudRoot>>(emptyList()) }
 
     fun saveCustomTime(h: Int, m: Int) {
         store.customReminderTime =
@@ -403,14 +405,18 @@ fun SettingsScreen(
         }.start()
     }
 
+    // Сохранение файла: результат системного окна
     val createLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/zip")
-    ) { uri ->
-        if (uri != null) {
-            val name = BackupManager.displayName(ctx, uri)
-            BackupManager.addDestination(ctx, uri, name)
-            dests = BackupManager.destinations(ctx)
-            runBackup()
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data
+            if (uri != null) {
+                val name = BackupManager.displayName(ctx, uri)
+                BackupManager.addDestination(ctx, uri, name)
+                dests = BackupManager.destinations(ctx)
+                runBackup()
+            }
         }
     }
 
@@ -713,7 +719,7 @@ fun SettingsScreen(
 
                 if (dests.isEmpty()) {
                     Text(
-                        "Пока нет подключённых облак. Нажмите «➕ Добавить» и в открывшемся окне выберите своё облако.",
+                        "Пока нет подключённых облак. Нажмите «➕ Добавить» и выберите своё облако из списка.",
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
@@ -750,7 +756,10 @@ fun SettingsScreen(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Button(
-                        onClick = { createLauncher.launch(BackupManager.FILE_NAME) },
+                        onClick = {
+                            cloudRoots = BackupManager.listCloudRoots(ctx)
+                            showCloudPicker = true
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Orange)
@@ -905,6 +914,50 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(20.dp))
+    }
+
+    // ============================================================
+    // ПРОСТОЙ ВЫБОР ОБЛАКА (список найденных облак)
+    // ============================================================
+    if (showCloudPicker) {
+        AlertDialog(
+            onDismissRequest = { showCloudPicker = false },
+            title = { Text("Куда сохранять копии?", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    if (cloudRoots.isEmpty()) {
+                        Text(
+                            "Облака не найдены. Установите приложение облака (Яндекс Диск, Google Диск, Облако Mail.ru) или нажмите «Другое…».",
+                            fontSize = 13.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    cloudRoots.forEach { root ->
+                        TextButton(
+                            onClick = {
+                                showCloudPicker = false
+                                createLauncher.launch(BackupManager.createDocumentIntent(root.uri))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("☁️ " + root.title, color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            showCloudPicker = false
+                            createLauncher.launch(BackupManager.createDocumentIntent(null))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📂 Другое…", color = Orange, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCloudPicker = false }) { Text("Отмена") }
+            }
+        )
     }
 
     // ============================================================
