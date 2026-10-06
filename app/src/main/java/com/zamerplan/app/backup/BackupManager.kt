@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import com.zamerplan.app.alarm.SettingsStore
 import org.json.JSONArray
@@ -48,7 +49,9 @@ object BackupManager {
 
     data class RestoreResult(val ok: Boolean, val message: String)
 
-    // --- СПИСОК ОБЛАКОВ ---
+    // ============================================================
+    // СПИСОК ПОДКЛЮЧЁННЫХ ОБЛАКОВ
+    // ============================================================
 
     fun destinations(ctx: Context): List<Destination> {
         val prefs = ctx.getSharedPreferences("backup_destinations", Context.MODE_PRIVATE)
@@ -112,13 +115,14 @@ object BackupManager {
     }
 
     fun displayName(ctx: Context, uri: Uri): String {
-        val fromProvider = try {
+        val cloud = cloudNameByAuthority(uri)
+        val file = try {
             ctx.contentResolver.query(uri, null, null, null, null)?.use { c ->
                 val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
             }
         } catch (e: Exception) { null }
-        return fromProvider ?: cloudNameByAuthority(uri)
+        return if (file.isNullOrBlank()) cloud else "$cloud · $file"
     }
 
     private fun cloudNameByAuthority(uri: Uri): String = when {
@@ -131,7 +135,72 @@ object BackupManager {
         else -> uri.authority ?: "Облако"
     }
 
-    // --- СБОРКА КОПИИ ---
+    // ============================================================
+    // ПОИСК ОБЛАКОВ ДЛЯ ПРОСТОГО ВЫБОРА (список в настройках)
+    // ============================================================
+
+    data class CloudRoot(
+        val title: String,
+        val uri: Uri
+    )
+
+    /**
+     * Находит все хранилища и облака, установленные
+     * на телефоне, чтобы показать простой список
+     * вместо сложного системного окна.
+     */
+    fun listCloudRoots(ctx: Context): List<CloudRoot> {
+        val result = mutableListOf<CloudRoot>()
+        try {
+            val pm = ctx.packageManager
+            val intent = Intent("android.content.action.DOCUMENTS_PROVIDER")
+            val providers = pm.queryIntentContentProviders(intent, 0)
+            for (ri in providers) {
+                val info = ri.providerInfo ?: continue
+                val authority = info.authority ?: continue
+                val appLabel = ri.loadLabel(pm)?.toString() ?: authority
+                try {
+                    val rootsUri = DocumentsContract.buildRootsUri(authority)
+                    ctx.contentResolver.query(rootsUri, null, null, null, null)?.use { c ->
+                        val docIdx = c.getColumnIndex(DocumentsContract.Root.COLUMN_DOCUMENT_ID)
+                        val titleIdx = c.getColumnIndex(DocumentsContract.Root.COLUMN_TITLE)
+                        while (c.moveToNext()) {
+                            val docId = if (docIdx >= 0) c.getString(docIdx) else null
+                            if (docId.isNullOrBlank()) continue
+                            val title = if (titleIdx >= 0) {
+                                c.getString(titleIdx)?.takeIf { it.isNotBlank() } ?: appLabel
+                            } else {
+                                appLabel
+                            }
+                            val uri = DocumentsContract.buildDocumentUri(authority, docId)
+                            if (result.none { it.uri == uri }) {
+                                result.add(CloudRoot(title, uri))
+                            }
+                        }
+                    }
+                } catch (e: Exception) { }
+            }
+        } catch (e: Exception) { }
+        return result
+    }
+
+    /**
+     * Intent сохранения файла, который сразу открывает
+     * системное окно ВНУТРИ выбранного облака.
+     */
+    fun createDocumentIntent(initialUri: Uri?): Intent =
+        Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            type = "application/zip"
+            addCategory(Intent.CATEGORY_OPENABLE)
+            putExtra(Intent.EXTRA_TITLE, FILE_NAME)
+            if (initialUri != null) {
+                putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
+            }
+        }
+
+    // ============================================================
+    // СБОРКА КОПИИ
+    // ============================================================
 
     private fun appVersion(ctx: Context): String = try {
         ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
@@ -191,7 +260,9 @@ object BackupManager {
         }
     } catch (e: Exception) { false }
 
-    // --- СОЗДАНИЕ КОПИЙ ВО ВСЕ ОБЛАКА ---
+    // ============================================================
+    // СОЗДАНИЕ КОПИЙ ВО ВСЕ ОБЛАКА
+    // ============================================================
 
     fun backupAll(ctx: Context): List<BackupResult> {
         val dests = destinations(ctx)
@@ -233,7 +304,9 @@ object BackupManager {
         } ?: throw java.io.IOException("не удалось открыть поток записи")
     }
 
-    // --- ЧТЕНИЕ META ИЗ КОПИИ ---
+    // ============================================================
+    // ЧТЕНИЕ META ИЗ КОПИИ
+    // ============================================================
 
     fun readMeta(ctx: Context, uri: Uri): BackupMeta? = try {
         ctx.contentResolver.openInputStream(uri)?.use { ins -> readMetaFromStream(ins) }
@@ -260,7 +333,9 @@ object BackupManager {
         }
     }
 
-    // --- ВОССТАНОВЛЕНИЕ ---
+    // ============================================================
+    // ВОССТАНОВЛЕНИЕ
+    // ============================================================
 
     fun restore(ctx: Context, uri: Uri): RestoreResult {
         val tmp = File(ctx.cacheDir, "restore_tmp.zip")
@@ -322,9 +397,9 @@ object BackupManager {
         }
     }
 
-    // --- АВТОКОПИЯ ---
-    // Debounce 20 сек, троттлинг 5 мин, проверка каждые 15 мин,
-    // дозапись при сворачивании, догоняющая при открытии.
+    // ============================================================
+    // АВТОКОПИЯ
+    // ============================================================
 
     private const val DEBOUNCE_MS = 20_000L
     private const val PERIODIC_MS = 15 * 60_000L
