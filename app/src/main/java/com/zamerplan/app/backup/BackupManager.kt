@@ -49,8 +49,15 @@ object BackupManager {
 
     data class RestoreResult(val ok: Boolean, val message: String)
 
+    // Вариант облака для простого списка выбора
+    data class CloudOption(
+        val title: String,
+        val rootUri: Uri?,
+        val packageName: String
+    )
+
     // ============================================================
-    // СПИСОК ПОДКЛЮЧЁННЫХ ОБЛАКОВ
+    // ПОДКЛЮЧЁННЫЕ ОБЛАКА
     // ============================================================
 
     fun destinations(ctx: Context): List<Destination> {
@@ -136,29 +143,55 @@ object BackupManager {
     }
 
     // ============================================================
-    // ПОИСК ОБЛАКОВ ДЛЯ ПРОСТОГО ВЫБОРА (список в настройках)
+    // ПОИСК ОБЛАК НА ТЕЛЕФОНЕ (работает на любом Android 11+)
     // ============================================================
 
-    data class CloudRoot(
-        val title: String,
-        val uri: Uri
+    private val knownClouds = listOf(
+        "ru.yandex.disk" to "Яндекс Диск",
+        "com.google.android.apps.docs" to "Google Диск",
+        "ru.mail.cloud" to "Облако Mail.ru",
+        "com.dropbox.android" to "Dropbox",
+        "com.microsoft.skydrive" to "OneDrive"
     )
 
-    /**
-     * Находит все хранилища и облака, установленные
-     * на телефоне, чтобы показать простой список
-     * вместо сложного системного окна.
-     */
-    fun listCloudRoots(ctx: Context): List<CloudRoot> {
-        val result = mutableListOf<CloudRoot>()
+    private val systemProviders = setOf(
+        "com.android.externalstorage",
+        "com.android.providers.media"
+    )
+
+    fun listCloudOptions(ctx: Context): List<CloudOption> {
+        val result = mutableListOf<CloudOption>()
+        val pm = ctx.packageManager
+        val providers = mutableListOf<Triple<String, String, String>>()
+
+        // 1) Все провайдеры документов, видимые системе
         try {
-            val pm = ctx.packageManager
             val intent = Intent("android.content.action.DOCUMENTS_PROVIDER")
-            val providers = pm.queryIntentContentProviders(intent, 0)
-            for (ri in providers) {
+            for (ri in pm.queryIntentContentProviders(intent, 0)) {
                 val info = ri.providerInfo ?: continue
                 val authority = info.authority ?: continue
-                val appLabel = ri.loadLabel(pm)?.toString() ?: authority
+                if (info.packageName in systemProviders) continue
+                val label = ri.loadLabel(pm)?.toString() ?: info.packageName
+                providers.add(Triple(info.packageName, authority, label))
+            }
+        } catch (e: Exception) { }
+
+        // 2) Добавляем известные облака, установленные на телефоне
+        for ((pkg, title) in knownClouds) {
+            val installed = try {
+                pm.getPackageInfo(pkg, 0)
+                true
+            } catch (e: Exception) { false }
+            if (installed && providers.none { it.first == pkg }) {
+                providers.add(Triple(pkg, "", title))
+            }
+        }
+
+        // 3) Для каждого пробуем получить корень для прямого входа
+        for ((pkg, authority, label) in providers) {
+            val titleBase = knownClouds.firstOrNull { it.first == pkg }?.second ?: label
+            var added = false
+            if (authority.isNotBlank()) {
                 try {
                     val rootsUri = DocumentsContract.buildRootsUri(authority)
                     ctx.contentResolver.query(rootsUri, null, null, null, null)?.use { c ->
@@ -167,27 +200,27 @@ object BackupManager {
                         while (c.moveToNext()) {
                             val docId = if (docIdx >= 0) c.getString(docIdx) else null
                             if (docId.isNullOrBlank()) continue
-                            val title = if (titleIdx >= 0) {
-                                c.getString(titleIdx)?.takeIf { it.isNotBlank() } ?: appLabel
+                            val t = if (titleIdx >= 0) {
+                                c.getString(titleIdx)?.takeIf { it.isNotBlank() } ?: titleBase
                             } else {
-                                appLabel
+                                titleBase
                             }
                             val uri = DocumentsContract.buildDocumentUri(authority, docId)
-                            if (result.none { it.uri == uri }) {
-                                result.add(CloudRoot(title, uri))
+                            if (result.none { it.rootUri == uri }) {
+                                result.add(CloudOption(t, uri, pkg))
+                                added = true
                             }
                         }
                     }
                 } catch (e: Exception) { }
             }
-        } catch (e: Exception) { }
+            if (!added && result.none { it.packageName == pkg && it.rootUri == null }) {
+                result.add(CloudOption(titleBase, null, pkg))
+            }
+        }
         return result
     }
 
-    /**
-     * Intent сохранения файла, который сразу открывает
-     * системное окно ВНУТРИ выбранного облака.
-     */
     fun createDocumentIntent(initialUri: Uri?): Intent =
         Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             type = "application/zip"
