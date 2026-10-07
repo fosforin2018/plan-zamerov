@@ -45,10 +45,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// ================================================================
-// ПОДПИСИ СЛОТОВ
-// ================================================================
-
 private fun plural(n: Int, one: String, few: String, many: String): String {
     val mod10 = n % 10
     val mod100 = n % 100
@@ -82,10 +78,6 @@ private fun parseHHMM(s: String): Pair<Int, Int> {
 private fun fmtBackupTime(ms: Long): String =
     if (ms == 0L) "копии ещё нет"
     else SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ms))
-
-// ================================================================
-// БАРАБАН: 3 цифры
-// ================================================================
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -176,10 +168,6 @@ fun WheelNumberPicker(
         )
     }
 }
-
-// ================================================================
-// ОКНО ИЗМЕНЕНИЯ СЛОТА
-// ================================================================
 
 @Composable
 private fun OffsetDialog(
@@ -293,10 +281,6 @@ private fun OffsetDialog(
     )
 }
 
-// ================================================================
-// ЭКРАН НАСТРОЕК
-// ================================================================
-
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -345,7 +329,8 @@ fun SettingsScreen(
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
     var restoreMeta by remember { mutableStateOf<BackupManager.BackupMeta?>(null) }
     var showCloudPicker by remember { mutableStateOf(false) }
-    var cloudRoots by remember { mutableStateOf<List<BackupManager.CloudRoot>>(emptyList()) }
+    var cloudOptions by remember { mutableStateOf<List<BackupManager.CloudOption>>(emptyList()) }
+    var hintTitle by remember { mutableStateOf<String?>(null) }
 
     fun saveCustomTime(h: Int, m: Int) {
         store.customReminderTime =
@@ -405,7 +390,6 @@ fun SettingsScreen(
         }.start()
     }
 
-    // Сохранение файла: результат системного окна
     val createLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -441,9 +425,6 @@ fun SettingsScreen(
         })
     }
 
-    // ============================================================
-    // НАСТРОЙКИ ВИДЖЕТА
-    // ============================================================
     val widgetPrefs = remember { ctx.getSharedPreferences("settings", Context.MODE_PRIVATE) }
     var widgetCardsCount by remember { mutableStateOf(widgetPrefs.getInt("widget_cards_count", 2)) }
     fun refreshWidgetWithCardCount(count: Int) {
@@ -475,9 +456,6 @@ fun SettingsScreen(
         }
     }
 
-    // ============================================================
-    // ОСНОВНОЙ UI
-    // ============================================================
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -495,9 +473,7 @@ fun SettingsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // ========================================================
         // ВИДЖЕТ
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -535,9 +511,7 @@ fun SettingsScreen(
             }
         }
 
-        // ========================================================
         // ТЕМА
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -561,9 +535,7 @@ fun SettingsScreen(
             }
         }
 
-        // ========================================================
         // НАПОМИНАНИЯ И ЗВУК (гармошка)
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -698,9 +670,7 @@ fun SettingsScreen(
             }
         }
 
-        // ========================================================
         // РЕЗЕРВНЫЕ КОПИИ (облака)
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -757,7 +727,7 @@ fun SettingsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Button(
                         onClick = {
-                            cloudRoots = BackupManager.listCloudRoots(ctx)
+                            cloudOptions = BackupManager.listCloudOptions(ctx)
                             showCloudPicker = true
                         },
                         modifier = Modifier.weight(1f),
@@ -802,9 +772,7 @@ fun SettingsScreen(
             }
         }
 
-        // ========================================================
         // ИСТОЧНИКИ
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -855,9 +823,7 @@ fun SettingsScreen(
             }
         }
 
-        // ========================================================
         // РАЗРЕШЕНИЯ
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -883,9 +849,7 @@ fun SettingsScreen(
             }
         }
 
-        // ========================================================
         // ЛОГИ ВИДЖЕТА
-        // ========================================================
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -916,31 +880,33 @@ fun SettingsScreen(
         Spacer(Modifier.height(20.dp))
     }
 
-    // ============================================================
-    // ПРОСТОЙ ВЫБОР ОБЛАКА (список найденных облак)
-    // ============================================================
+    // ПРОСТОЙ ВЫБОР ОБЛАКА
     if (showCloudPicker) {
         AlertDialog(
             onDismissRequest = { showCloudPicker = false },
             title = { Text("Куда сохранять копии?", fontWeight = FontWeight.Bold) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    if (cloudRoots.isEmpty()) {
+                    if (cloudOptions.isEmpty()) {
                         Text(
-                            "Облака не найдены. Установите приложение облака (Яндекс Диск, Google Диск, Облако Mail.ru) или нажмите «Другое…».",
+                            "На телефоне не найдено облачных приложений. Установите Яндекс Диск, Google Диск или Облако Mail.ru, либо нажмите «Другое…».",
                             fontSize = 13.sp
                         )
                         Spacer(Modifier.height(8.dp))
                     }
-                    cloudRoots.forEach { root ->
+                    cloudOptions.forEach { opt ->
                         TextButton(
                             onClick = {
                                 showCloudPicker = false
-                                createLauncher.launch(BackupManager.createDocumentIntent(root.uri))
+                                if (opt.rootUri != null) {
+                                    createLauncher.launch(BackupManager.createDocumentIntent(opt.rootUri))
+                                } else {
+                                    hintTitle = opt.title
+                                }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("☁️ " + root.title, color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                            Text("☁️ " + opt.title, color = TextPrimary, modifier = Modifier.fillMaxWidth())
                         }
                     }
                     TextButton(
@@ -960,9 +926,38 @@ fun SettingsScreen(
         )
     }
 
-    // ============================================================
+    // ПОДСКАЗКА ДЛЯ «СТРОГОГО» ОБЛАКА (один раз)
+    hintTitle?.let { title ->
+        AlertDialog(
+            onDismissRequest = { hintTitle = null },
+            title = { Text("Подключаем «$title»", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("В открывшемся окне сохранения:", fontSize = 13.sp)
+                    Text("1. Нажмите меню ☰ слева сверху (или название папки сверху).", fontSize = 13.sp)
+                    Text("2. Выберите «$title».", fontSize = 13.sp)
+                    Text("3. Нажмите «Сохранить».", fontSize = 13.sp)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Это нужно сделать ОДИН раз — дальше копии будут улетать туда автоматически.",
+                        fontSize = 12.sp,
+                        color = Orange
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    hintTitle = null
+                    createLauncher.launch(BackupManager.createDocumentIntent(null))
+                }) { Text("Открыть окно") }
+            },
+            dismissButton = {
+                TextButton(onClick = { hintTitle = null }) { Text("Отмена") }
+            }
+        )
+    }
+
     // ОКНО ИЗМЕНЕНИЯ СЛОТА
-    // ============================================================
     editSlot?.let { slot ->
         OffsetDialog(
             initialMinutes = slotMin[slot - 1],
@@ -976,9 +971,7 @@ fun SettingsScreen(
         )
     }
 
-    // ============================================================
     // ОТКУДА ВОССТАНОВИТЬ
-    // ============================================================
     if (showRestoreSource) {
         AlertDialog(
             onDismissRequest = { showRestoreSource = false },
@@ -1013,9 +1006,7 @@ fun SettingsScreen(
         )
     }
 
-    // ============================================================
     // ПОДТВЕРЖДЕНИЕ ВОССТАНОВЛЕНИЯ
-    // ============================================================
     if (showRestoreConfirm && restoreMeta != null && restoreUri != null) {
         val meta = restoreMeta!!
         val uri = restoreUri!!
@@ -1050,9 +1041,7 @@ fun SettingsScreen(
         )
     }
 
-    // ============================================================
-    // ОТЧЁТ О КОПИРОВАНИИ / ВОССТАНОВЛЕНИИ
-    // ============================================================
+    // ОТЧЁТ
     if (showReport) {
         AlertDialog(
             onDismissRequest = { showReport = false },
@@ -1064,9 +1053,7 @@ fun SettingsScreen(
         )
     }
 
-    // ============================================================
     // ОКНО ЛОГОВ
-    // ============================================================
     if (showLogs) {
         AlertDialog(
             onDismissRequest = { showLogs = false },
