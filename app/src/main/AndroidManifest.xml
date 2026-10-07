@@ -10,6 +10,17 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+        <queries>
+        <intent>
+            <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+        </intent>
+        <package android:name="ru.yandex.disk" />
+        <package android:name="com.google.android.apps.docs" />
+        <package android:name="ru.mail.cloud" />
+        <package android:name="com.dropbox.android" />
+        <package android:name="com.microsoft.skydrive" />
+        </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
