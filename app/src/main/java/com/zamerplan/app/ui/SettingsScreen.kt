@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zamerplan.app.alarm.ReminderScheduler
@@ -78,6 +79,12 @@ private fun parseHHMM(s: String): Pair<Int, Int> {
 private fun fmtBackupTime(ms: Long): String =
     if (ms == 0L) "копии ещё нет"
     else SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(ms))
+
+private fun destIcon(type: String): String = when (type) {
+    "saf" -> "📂"
+    "telegram" -> "✈️"
+    else -> "☁️"
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -289,6 +296,8 @@ fun SettingsScreen(
 ) {
     val ctx = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     fun reschedule() {
         ReminderScheduler.scheduleAll(ctx, Storage(ctx).load(), store)
@@ -318,7 +327,6 @@ fun SettingsScreen(
     var logsText by remember { mutableStateOf("") }
     var themeMode by remember { mutableStateOf(store.themeMode) }
 
-    // ==================== РЕЗЕРВНЫЕ КОПИИ ====================
     var dests by remember { mutableStateOf(BackupManager.destinations(ctx)) }
     var autoBackup by remember { mutableStateOf(store.autoBackup) }
     var backupBusy by remember { mutableStateOf(false) }
@@ -327,10 +335,12 @@ fun SettingsScreen(
     var showRestoreSource by remember { mutableStateOf(false) }
     var showRestoreConfirm by remember { mutableStateOf(false) }
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var restoreDest by remember { mutableStateOf<BackupManager.Destination?>(null) }
     var restoreMeta by remember { mutableStateOf<BackupManager.BackupMeta?>(null) }
-    var showCloudPicker by remember { mutableStateOf(false) }
-    var cloudOptions by remember { mutableStateOf<List<BackupManager.CloudOption>>(emptyList()) }
-    var hintTitle by remember { mutableStateOf<String?>(null) }
+    var connectType by remember { mutableStateOf<String?>(null) }
+    var connectLogin by remember { mutableStateOf("") }
+    var connectPass by remember { mutableStateOf("") }
+    var showTelegramConnect by remember { mutableStateOf(false) }
 
     fun saveCustomTime(h: Int, m: Int) {
         store.customReminderTime =
@@ -345,7 +355,7 @@ fun SettingsScreen(
             val results = BackupManager.backupAll(ctx)
             val newDests = BackupManager.destinations(ctx)
             val report = if (results.isEmpty()) {
-                "Сначала подключите облако: «➕ Добавить»"
+                "Сначала подключите облако или Telegram"
             } else {
                 results.joinToString("\n") { r ->
                     (if (r.ok) "✓ " else "⚠ ") + r.destination.name +
@@ -361,23 +371,79 @@ fun SettingsScreen(
         }.start()
     }
 
-    fun prepareRestore(uri: Uri) {
-        val meta = BackupManager.readMeta(ctx, uri)
-        restoreUri = uri
-        restoreMeta = meta
-        if (meta == null) {
-            lastReport = "Файл не похож на копию «План замеров» или повреждён"
+    fun connectTelegram() {
+        if (!BackupManager.telegramConfigured()) {
+            lastReport = "Telegram не настроен: вставь токен бота в константу TELEGRAM_BOT_TOKEN в BackupManager.kt"
             showReport = true
-        } else {
-            showRestoreConfirm = true
+            return
         }
-    }
-
-    fun runRestore(uri: Uri) {
         if (backupBusy) return
         backupBusy = true
         Thread {
-            val r = BackupManager.restore(ctx, uri)
+            val err = BackupManager.telegramConnect(ctx)
+            val newDests = BackupManager.destinations(ctx)
+            mainHandler.post {
+                backupBusy = false
+                dests = newDests
+                if (err != null) {
+                    lastReport = err
+                    showReport = true
+                } else {
+                    runBackup()
+                }
+            }
+        }.start()
+    }
+
+    fun prepareRestoreDest(d: BackupManager.Destination) {
+        if (d.type == "saf") {
+            val meta = BackupManager.readMeta(ctx, Uri.parse(d.uri))
+            restoreDest = d
+            restoreUri = Uri.parse(d.uri)
+            restoreMeta = meta
+            if (meta == null) {
+                lastReport = "Файл не похож на копию или повреждён"
+                showReport = true
+            } else {
+                showRestoreConfirm = true
+            }
+            return
+        }
+        backupBusy = true
+        Thread {
+            val tmp = File(ctx.cacheDir, "restore_tmp.zip")
+            val ok = BackupManager.downloadTo(ctx, d, tmp)
+            val meta = if (ok) BackupManager.readMetaFile(tmp) else null
+            tmp.delete()
+            mainHandler.post {
+                backupBusy = false
+                restoreDest = d
+                restoreUri = null
+                restoreMeta = meta
+                if (meta == null) {
+                    lastReport = "Не удалось скачать копию из «" + d.name + "»"
+                    showReport = true
+                } else {
+                    showRestoreConfirm = true
+                }
+            }
+        }.start()
+    }
+
+    fun runRestore() {
+        if (backupBusy) return
+        val d = restoreDest
+        val u = restoreUri
+        if (d == null && u == null) return
+        backupBusy = true
+        Thread {
+            val r = if (d != null && d.type != "saf") {
+                BackupManager.restoreCloud(ctx, d)
+            } else if (u != null) {
+                BackupManager.restoreSaf(ctx, u)
+            } else {
+                BackupManager.RestoreResult(false, "источник не выбран")
+            }
             mainHandler.post {
                 backupBusy = false
                 if (r.ok) {
@@ -397,17 +463,11 @@ fun SettingsScreen(
             val uri = result.data?.data
             if (uri != null) {
                 val name = BackupManager.displayName(ctx, uri)
-                BackupManager.addDestination(ctx, uri, name)
+                BackupManager.addSafDestination(ctx, uri, name)
                 dests = BackupManager.destinations(ctx)
                 runBackup()
             }
         }
-    }
-
-    val openLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) prepareRestore(uri)
     }
 
     val summary = buildString {
@@ -456,6 +516,32 @@ fun SettingsScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        val pending = BackupManager.takePendingAuth(ctx)
+        val code = pending.first
+        val err = pending.second
+        if (err != null) {
+            lastReport = "Яндекс отклонил подключение: $err"
+            showReport = true
+        } else if (code != null) {
+            backupBusy = true
+            Thread {
+                val connectError = BackupManager.finishYandexConnect(ctx, code)
+                val newDests = BackupManager.destinations(ctx)
+                mainHandler.post {
+                    backupBusy = false
+                    dests = newDests
+                    if (connectError != null) {
+                        lastReport = connectError
+                        showReport = true
+                    } else {
+                        runBackup()
+                    }
+                }
+            }.start()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -473,7 +559,6 @@ fun SettingsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // ВИДЖЕТ
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -511,7 +596,6 @@ fun SettingsScreen(
             }
         }
 
-        // ТЕМА
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -535,7 +619,6 @@ fun SettingsScreen(
             }
         }
 
-        // НАПОМИНАНИЯ И ЗВУК (гармошка)
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -670,7 +753,6 @@ fun SettingsScreen(
             }
         }
 
-        // РЕЗЕРВНЫЕ КОПИИ (облака)
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -681,7 +763,7 @@ fun SettingsScreen(
                 Text("☁️ Резервные копии", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "База замеров и голосовые хранятся в ваших облаках: Яндекс Диск, Google Диск, Облако Mail.ru и др.",
+                    "Копии базы и голосовых: Telegram, Яндекс Диск, Облако Mail.ru или файл на телефоне.",
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
@@ -689,12 +771,12 @@ fun SettingsScreen(
 
                 if (dests.isEmpty()) {
                     Text(
-                        "Пока нет подключённых облак. Нажмите «➕ Добавить» и выберите своё облако из списка.",
+                        "Пока нет подключений. Проще всего: «➕ Telegram» — два нажатия и копии уходят в ваш чат с ботом автоматически.",
                         fontSize = 12.sp,
                         color = TextSecondary
                     )
                 } else {
-                    dests.forEach { d ->
+                    dests.forEachIndexed { i, d ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -706,7 +788,7 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.width(6.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(d.name, fontSize = 13.sp, color = TextPrimary, maxLines = 1)
+                                Text(destIcon(d.type) + " " + d.name, fontSize = 13.sp, color = TextPrimary, maxLines = 1)
                                 Text(
                                     if (d.lastError.isBlank()) "копия: " + fmtBackupTime(d.lastOk)
                                     else d.lastError,
@@ -715,7 +797,7 @@ fun SettingsScreen(
                                 )
                             }
                             IconButton(onClick = {
-                                BackupManager.removeDestination(ctx, d.uri)
+                                BackupManager.removeDestination(ctx, i)
                                 dests = BackupManager.destinations(ctx)
                             }) { Text("✕", color = Red) }
                         }
@@ -726,28 +808,62 @@ fun SettingsScreen(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Button(
+                        onClick = { showTelegramConnect = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
+                    ) { Text("➕ Telegram", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                    Button(
                         onClick = {
-                            cloudOptions = BackupManager.listCloudOptions(ctx)
-                            showCloudPicker = true
+                            if (!BackupManager.yandexConfigured()) {
+                                lastReport = "Подключение Яндекса не настроено: вставь ClientID и Client secret в константы в начале BackupManager.kt"
+                                showReport = true
+                            } else {
+                                try {
+                                    ctx.startActivity(BackupManager.yandexAuthIntent())
+                                } catch (e: Exception) {
+                                    lastReport = "Не удалось открыть браузер: ${e.message}"
+                                    showReport = true
+                                }
+                            }
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Orange)
-                    ) { Text("➕ Добавить", fontSize = 12.sp, color = Color.White, maxLines = 1) }
+                    ) { Text("➕ Яндекс", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                    Button(
+                        onClick = {
+                            connectType = "mailru"
+                            connectLogin = ""
+                            connectPass = ""
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Orange)
+                    ) { Text("➕ Mail.ru", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Button(
+                        onClick = { createLauncher.launch(BackupManager.createDocumentIntent()) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Gray)
+                    ) { Text("📂 Файл", fontSize = 11.sp, color = Color.White, maxLines = 1) }
                     Button(
                         onClick = { runBackup() },
                         modifier = Modifier.weight(1f),
                         enabled = !backupBusy && dests.isNotEmpty(),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Green)
-                    ) { Text("📤 Копии", fontSize = 12.sp, color = Color.White, maxLines = 1) }
+                    ) { Text("📤 Копии", fontSize = 11.sp, color = Color.White, maxLines = 1) }
                     Button(
                         onClick = { showRestoreSource = true },
                         modifier = Modifier.weight(1f),
-                        enabled = !backupBusy,
+                        enabled = !backupBusy && dests.isNotEmpty(),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Blue)
-                    ) { Text("📥 Вернуть", fontSize = 12.sp, color = Color.White, maxLines = 1) }
+                    ) { Text("📥 Вернуть", fontSize = 11.sp, color = Color.White, maxLines = 1) }
                 }
 
                 Spacer(Modifier.height(6.dp))
@@ -772,7 +888,6 @@ fun SettingsScreen(
             }
         }
 
-        // ИСТОЧНИКИ
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -823,7 +938,6 @@ fun SettingsScreen(
             }
         }
 
-        // РАЗРЕШЕНИЯ
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -849,7 +963,6 @@ fun SettingsScreen(
             }
         }
 
-        // ЛОГИ ВИДЖЕТА
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             shape = RoundedCornerShape(16.dp),
@@ -880,84 +993,154 @@ fun SettingsScreen(
         Spacer(Modifier.height(20.dp))
     }
 
-    // ПРОСТОЙ ВЫБОР ОБЛАКА
-    if (showCloudPicker) {
+    if (showTelegramConnect) {
         AlertDialog(
-            onDismissRequest = { showCloudPicker = false },
-            title = { Text("Куда сохранять копии?", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    if (cloudOptions.isEmpty()) {
-                        Text(
-                            "На телефоне не найдено облачных приложений. Установите Яндекс Диск, Google Диск или Облако Mail.ru, либо нажмите «Другое…».",
-                            fontSize = 13.sp
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
-                    cloudOptions.forEach { opt ->
-                        TextButton(
-                            onClick = {
-                                showCloudPicker = false
-                                if (opt.rootUri != null) {
-                                    createLauncher.launch(BackupManager.createDocumentIntent(opt.rootUri))
-                                } else {
-                                    hintTitle = opt.title
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("☁️ " + opt.title, color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-                    }
-                    TextButton(
-                        onClick = {
-                            showCloudPicker = false
-                            createLauncher.launch(BackupManager.createDocumentIntent(null))
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("📂 Другое…", color = Orange, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showCloudPicker = false }) { Text("Отмена") }
-            }
-        )
-    }
-
-    // ПОДСКАЗКА ДЛЯ «СТРОГОГО» ОБЛАКА (один раз)
-    hintTitle?.let { title ->
-        AlertDialog(
-            onDismissRequest = { hintTitle = null },
-            title = { Text("Подключаем «$title»", fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showTelegramConnect = false },
+            title = { Text("Подключить Telegram", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("В открывшемся окне сохранения:", fontSize = 13.sp)
-                    Text("1. Нажмите меню ☰ слева сверху (или название папки сверху).", fontSize = 13.sp)
-                    Text("2. Выберите «$title».", fontSize = 13.sp)
-                    Text("3. Нажмите «Сохранить».", fontSize = 13.sp)
+                    Text("1. Открой Telegram.", fontSize = 13.sp, color = onSurface)
+                    Text("2. Найди бота " + BackupManager.telegramBotName() + " через поиск.", fontSize = 13.sp, color = onSurface)
+                    Text("3. Нажми START (или отправь /start).", fontSize = 13.sp, color = onSurface)
+                    Text("4. Вернись сюда и нажми «Подключить».", fontSize = 13.sp, color = onSurface)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Это нужно сделать ОДИН раз — дальше копии будут улетать туда автоматически.",
+                        "Копии будут приходить в твой личный чат с ботом — их видишь только ты. Восстановление — оттуда же.",
                         fontSize = 12.sp,
-                        color = Orange
+                        color = onSurfaceVariant
                     )
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    hintTitle = null
-                    createLauncher.launch(BackupManager.createDocumentIntent(null))
-                }) { Text("Открыть окно") }
+                    showTelegramConnect = false
+                    connectTelegram()
+                }) { Text("Подключить") }
             },
             dismissButton = {
-                TextButton(onClick = { hintTitle = null }) { Text("Отмена") }
+                TextButton(onClick = { showTelegramConnect = false }) { Text("Отмена") }
             }
         )
     }
 
-    // ОКНО ИЗМЕНЕНИЯ СЛОТА
+    connectType?.let { type ->
+        AlertDialog(
+            onDismissRequest = { connectType = null },
+            title = { Text("Подключить Облако Mail.ru", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = connectLogin,
+                        onValueChange = { connectLogin = it },
+                        label = { Text("Почта Mail.ru") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = connectPass,
+                        onValueChange = { connectPass = it },
+                        label = { Text("Пароль для внешних приложений") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "Где взять пароль: cloud.mail.ru → шестерёнка «Настройки» → «Пароль для внешних приложений» → создать и вставить сюда.",
+                        fontSize = 11.sp,
+                        color = onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val login = connectLogin.trim()
+                        val pass = connectPass.trim()
+                        if (login.isNotBlank() && pass.isNotBlank()) {
+                            BackupManager.addCloudDestination(ctx, type, login, pass)
+                            dests = BackupManager.destinations(ctx)
+                            connectType = null
+                            runBackup()
+                        }
+                    }
+                ) { Text("Подключить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { connectType = null }) { Text("Отмена") }
+            }
+        )
+    }
+
+    if (showRestoreSource) {
+        AlertDialog(
+            onDismissRequest = { showRestoreSource = false },
+            title = { Text("Откуда восстановить", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    dests.forEach { d ->
+                        TextButton(
+                            onClick = {
+                                showRestoreSource = false
+                                prepareRestoreDest(d)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                destIcon(d.type) + " " + d.name,
+                                color = onSurface,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showRestoreSource = false }) { Text("Отмена") }
+            }
+        )
+    }
+
+    if (showRestoreConfirm && restoreMeta != null) {
+        val meta = restoreMeta!!
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false },
+            title = { Text("Восстановить данные?", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Копия от: ${meta.createdAt}", fontSize = 13.sp, color = onSurface)
+                    Text("Замеров в копии: ${meta.zamerCount}", fontSize = 13.sp, color = onSurface)
+                    Text("Голосовых в копии: ${meta.voiceCount}", fontSize = 13.sp, color = onSurface)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "ВНИМАНИЕ: текущие замеры и голосовые на этом устройстве будут ПОЛНОСТЬЮ заменены данными из копии.",
+                        fontSize = 12.sp,
+                        color = Red
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRestoreConfirm = false
+                    runRestore()
+                }) { Text("Восстановить", color = Red) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirm = false }) { Text("Отмена") }
+            }
+        )
+    }
+
+    if (showReport) {
+        AlertDialog(
+            onDismissRequest = { showReport = false },
+            title = { Text("Резервное копирование", fontWeight = FontWeight.Bold) },
+            text = { Text(lastReport, fontSize = 13.sp, color = onSurface) },
+            confirmButton = {
+                TextButton(onClick = { showReport = false }) { Text("ОК") }
+            }
+        )
+    }
+
     editSlot?.let { slot ->
         OffsetDialog(
             initialMinutes = slotMin[slot - 1],
@@ -971,89 +1154,6 @@ fun SettingsScreen(
         )
     }
 
-    // ОТКУДА ВОССТАНОВИТЬ
-    if (showRestoreSource) {
-        AlertDialog(
-            onDismissRequest = { showRestoreSource = false },
-            title = { Text("Откуда восстановить", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    dests.forEach { d ->
-                        TextButton(
-                            onClick = {
-                                showRestoreSource = false
-                                prepareRestore(Uri.parse(d.uri))
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("☁️ " + d.name, color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-                    }
-                    TextButton(
-                        onClick = {
-                            showRestoreSource = false
-                            openLauncher.launch(arrayOf("*/*"))
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("📂 Выбрать другой файл…", color = Orange, modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showRestoreSource = false }) { Text("Отмена") }
-            }
-        )
-    }
-
-    // ПОДТВЕРЖДЕНИЕ ВОССТАНОВЛЕНИЯ
-    if (showRestoreConfirm && restoreMeta != null && restoreUri != null) {
-        val meta = restoreMeta!!
-        val uri = restoreUri!!
-        AlertDialog(
-            onDismissRequest = { showRestoreConfirm = false },
-            title = { Text("Восстановить данные?", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Копия от: ${meta.createdAt}", fontSize = 13.sp)
-                    Text("Замеров в копии: ${meta.zamerCount}", fontSize = 13.sp)
-                    Text("Голосовых в копии: ${meta.voiceCount}", fontSize = 13.sp)
-                    if (meta.appVersion.isNotBlank()) {
-                        Text("Версия приложения: ${meta.appVersion}", fontSize = 12.sp, color = TextSecondary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "ВНИМАНИЕ: текущие замеры и голосовые на этом устройстве будут ПОЛНОСТЬЮ заменены данными из копии.",
-                        fontSize = 12.sp,
-                        color = Red
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showRestoreConfirm = false
-                    runRestore(uri)
-                }) { Text("Восстановить", color = Red) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRestoreConfirm = false }) { Text("Отмена") }
-            }
-        )
-    }
-
-    // ОТЧЁТ
-    if (showReport) {
-        AlertDialog(
-            onDismissRequest = { showReport = false },
-            title = { Text("Резервное копирование", fontWeight = FontWeight.Bold) },
-            text = { Text(lastReport, fontSize = 13.sp) },
-            confirmButton = {
-                TextButton(onClick = { showReport = false }) { Text("ОК") }
-            }
-        )
-    }
-
-    // ОКНО ЛОГОВ
     if (showLogs) {
         AlertDialog(
             onDismissRequest = { showLogs = false },
@@ -1074,12 +1174,12 @@ fun SettingsScreen(
                             fontSize = 11.sp,
                             lineHeight = 14.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = onSurface
                         )
                     }
                     Spacer(Modifier.height(8.dp))
                     val linesCount = if (logsText.isBlank()) 0 else logsText.lines().size
-                    Text("Строк: $linesCount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Строк: $linesCount", fontSize = 11.sp, color = onSurfaceVariant)
                     Spacer(Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),

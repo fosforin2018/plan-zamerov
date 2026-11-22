@@ -60,7 +60,8 @@ class MainActivity : ComponentActivity() {
             }
         }
         ReminderScheduler.scheduleAll(this, zamers, settings)
-        BackupManager.startPeriodic(this) // проверка каждые 15 минут
+        BackupManager.startPeriodic(this)
+        handleBackupAuth(intent)
         val themeMode = settings.themeMode
         setContent {
             val darkTheme = when (themeMode) {
@@ -81,19 +82,29 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         reloadZamers()
-        // Догнать копию, если данные менялись без приложения
         BackupManager.onAppForeground(this)
     }
 
     override fun onStop() {
         super.onStop()
-        // Свернули приложение — немедленно дозаписать изменения
         BackupManager.onAppBackground(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         BackupManager.stopPeriodic()
+    }
+
+    private fun handleBackupAuth(intent: Intent?) {
+        val data = intent?.data
+        if (data != null && data.scheme == "zamerplan" && data.host == "backup-auth") {
+            BackupManager.onAuthRedirect(this, data)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleBackupAuth(intent)
     }
 
     private fun reloadZamers() {

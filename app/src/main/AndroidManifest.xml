@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
@@ -10,7 +11,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-        <queries>
+    <queries>
         <intent>
             <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
         </intent>
@@ -19,7 +20,7 @@
         <package android:name="ru.mail.cloud" />
         <package android:name="com.dropbox.android" />
         <package android:name="com.microsoft.skydrive" />
-        </queries>
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -30,10 +31,17 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zamerplan" android:host="backup-auth" />
             </intent-filter>
         </activity>
 
