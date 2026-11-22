@@ -337,6 +337,7 @@ fun SettingsScreen(
     var restoreUri by remember { mutableStateOf<Uri?>(null) }
     var restoreDest by remember { mutableStateOf<BackupManager.Destination?>(null) }
     var restoreMeta by remember { mutableStateOf<BackupManager.BackupMeta?>(null) }
+    var restoreLocal by remember { mutableStateOf(false) }
     var connectType by remember { mutableStateOf<String?>(null) }
     var connectLogin by remember { mutableStateOf("") }
     var connectPass by remember { mutableStateOf("") }
@@ -371,6 +372,19 @@ fun SettingsScreen(
         }.start()
     }
 
+    fun saveLocal() {
+        if (backupBusy) return
+        backupBusy = true
+        Thread {
+            val res = BackupManager.saveToLocalDownloads(ctx)
+            mainHandler.post {
+                backupBusy = false
+                lastReport = res.second
+                showReport = true
+            }
+        }.start()
+    }
+
     fun connectTelegram() {
         if (!BackupManager.telegramConfigured()) {
             lastReport = "Telegram не настроен: вставь токен бота в константу TELEGRAM_BOT_TOKEN в BackupManager.kt"
@@ -395,7 +409,22 @@ fun SettingsScreen(
         }.start()
     }
 
+    fun prepareRestoreLocal() {
+        val meta = BackupManager.readLocalMeta(ctx)
+        restoreLocal = true
+        restoreDest = null
+        restoreUri = null
+        restoreMeta = meta
+        if (meta == null) {
+            lastReport = "Копия в «Загрузках» не найдена или повреждена — сначала нажмите «💾 Локально»"
+            showReport = true
+        } else {
+            showRestoreConfirm = true
+        }
+    }
+
     fun prepareRestoreDest(d: BackupManager.Destination) {
+        restoreLocal = false
         if (d.type == "saf") {
             val meta = BackupManager.readMeta(ctx, Uri.parse(d.uri))
             restoreDest = d
@@ -437,7 +466,9 @@ fun SettingsScreen(
         if (d == null && u == null) return
         backupBusy = true
         Thread {
-            val r = if (d != null && d.type != "saf") {
+            val r = if (restoreLocal) {
+                BackupManager.restoreFromLocalDownloads(ctx)
+            } else if (d != null && d.type != "saf") {
                 BackupManager.restoreCloud(ctx, d)
             } else if (u != null) {
                 BackupManager.restoreSaf(ctx, u)
@@ -864,6 +895,12 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Blue)
                     ) { Text("📥 Вернуть", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                    Button(
+                        onClick = { saveLocal() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Gray)
+                    ) { Text("💾 Локально", fontSize = 10.sp, color = Color.White, maxLines = 1) }
                 }
 
                 Spacer(Modifier.height(6.dp))
@@ -1077,6 +1114,15 @@ fun SettingsScreen(
             title = { Text("Откуда восстановить", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
+                    TextButton(
+                        onClick = {
+                            showRestoreSource = false
+                            prepareRestoreLocal()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📱 Из Загрузок", color = onSurface, modifier = Modifier.fillMaxWidth())
+                    }
                     dests.forEach { d ->
                         TextButton(
                             onClick = {

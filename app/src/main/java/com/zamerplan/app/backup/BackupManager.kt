@@ -1,6 +1,10 @@
 package com.zamerplan.app.backup
 
 import android.content.Context
+import android.provider.MediaStore
+import android.os.Environment
+import android.os.Build
+import android.content.ContentValues
 import android.content.Intent
 import android.net.Uri
 import android.os.Handler
@@ -813,5 +817,106 @@ object BackupManager {
                 backupAll(ctx)
             } catch (e: Exception) { }
         }.start()
+    }
+
+    // ============================================================
+    // ЛОКАЛЬНОЕ СОХРАНЕНИЕ в «Загрузки» (без SAF, любая оболочка)
+    // ============================================================
+
+    private fun localFileName() = FILE_NAME
+
+    private fun writeToLocalDownloads(ctx: Context, src: File): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, localFileName())
+                    put(MediaStore.Downloads.MIME_TYPE, "application/zip")
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = ctx.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: return false
+                ctx.contentResolver.openOutputStream(uri, "wt")?.use { os ->
+                    src.inputStream().use { it.copyTo(os) }
+                } ?: return false
+                true
+            } catch (e: Exception) { false }
+        } else {
+            try {
+                val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!dir.exists()) dir.mkdirs()
+                val out = File(dir, localFileName())
+                src.inputStream().use { ins -> out.outputStream().use { ins.copyTo(it) } }
+                true
+            } catch (e: Exception) { false }
+        }
+    }
+
+    private fun localDownloadsUri(ctx: Context): Uri? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        return try {
+            val proj = arrayOf(MediaStore.Files.FileColumns._ID)
+            val sel = MediaStore.Downloads.DISPLAY_NAME + "=?"
+            val args = arrayOf(localFileName())
+            ctx.contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, proj, sel, args, null
+            )?.use { c ->
+                if (c.moveToFirst())
+                    Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, c.getString(0))
+                else null
+            }
+        } catch (e: Exception) { null }
+    }
+
+    private fun readLocalFileToTmp(ctx: Context, tmp: File): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val uri = localDownloadsUri(ctx)
+            if (uri != null) {
+                return try {
+                    ctx.contentResolver.openInputStream(uri)?.use { ins ->
+                        tmp.outputStream().use { ins.copyTo(it) }
+                    }
+                    true
+                } catch (e: Exception) { false }
+            }
+        }
+        return try {
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val f = File(dir, localFileName())
+            if (!f.exists()) return false
+            f.inputStream().use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
+            true
+        } catch (e: Exception) { false }
+    }
+
+    fun saveToLocalDownloads(ctx: Context): Pair<Boolean, String> {
+        val tmp = File(ctx.cacheDir, "local_save_tmp.zip")
+        return try {
+            buildZip(ctx, tmp)
+            if (!verifyZip(tmp)) return Pair(false, "ошибка сборки копии")
+            val ok = writeToLocalDownloads(ctx, tmp)
+            if (ok) Pair(true, "Копия сохранена в папку «Загрузки» (файл " + localFileName() + ")")
+            else Pair(false, "не удалось записать в «Загрузки»")
+        } catch (e: Exception) {
+            Pair(false, "ошибка: ${e.message}")
+        } finally { tmp.delete() }
+    }
+
+    fun readLocalMeta(ctx: Context): BackupMeta? {
+        val tmp = File(ctx.cacheDir, "local_meta_tmp.zip")
+        return try {
+            if (!readLocalFileToTmp(ctx, tmp)) return null
+            readMetaFile(tmp)
+        } catch (e: Exception) { null } finally { tmp.delete() }
+    }
+
+    fun restoreFromLocalDownloads(ctx: Context): RestoreResult {
+        val tmp = File(ctx.cacheDir, "local_restore_tmp.zip")
+        return try {
+            if (!readLocalFileToTmp(ctx, tmp))
+                return RestoreResult(false, "файл копии не найден в «Загрузках» — сначала нажмите «💾 В Загрузки»")
+            restoreFromFile(ctx, tmp)
+        } catch (e: Exception) {
+            RestoreResult(false, "ошибка: ${e.message}")
+        } finally { tmp.delete() }
     }
 }
