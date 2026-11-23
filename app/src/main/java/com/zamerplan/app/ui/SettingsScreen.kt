@@ -463,7 +463,7 @@ fun SettingsScreen(
         if (backupBusy) return
         val d = restoreDest
         val u = restoreUri
-        if (d == null && u == null) return
+        if (!restoreLocal && d == null && u == null) return
         backupBusy = true
         Thread {
             val r = if (restoreLocal) {
