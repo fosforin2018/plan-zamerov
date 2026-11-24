@@ -865,7 +865,6 @@ object BackupManager {
     private fun localDownloadsUri(ctx: Context): Uri? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         return try {
-            MediaStore.setIncludePending(ctx.contentResolver)
             val proj = arrayOf(MediaStore.Files.FileColumns._ID)
             val sel = MediaStore.Downloads.DISPLAY_NAME + "=?"
             val args = arrayOf(localFileName())
