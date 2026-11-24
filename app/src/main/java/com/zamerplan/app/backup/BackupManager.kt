@@ -848,6 +848,8 @@ object BackupManager {
                 val pub = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
                 ctx.contentResolver.update(uri, pub, null, null)
                 statePrefs(ctx).edit().putString("local_uri", uri.toString()).apply()
+                writeHistoryCopy(ctx, src)
+                pruneHistory(ctx)
                 true
             } catch (e: Exception) { false }
         } else {
@@ -857,6 +859,8 @@ object BackupManager {
                 val out = File(dir, localFileName())
                 src.inputStream().use { ins -> out.outputStream().use { ins.copyTo(it) } }
                 statePrefs(ctx).edit().putString("local_path", out.absolutePath).apply()
+                writeHistoryCopy(ctx, src)
+                pruneHistory(ctx)
                 true
             } catch (e: Exception) { false }
         }
@@ -948,6 +952,102 @@ object BackupManager {
             restoreFromFile(ctx, tmp)
         } catch (e: Exception) {
             RestoreResult(false, "ошибка: ${e.message}")
+        } finally { tmp.delete() }
+    }
+
+    // ============================================================
+    // ИСТОРИЯ КОПИЙ (подпапка, метки времени, ротация) — слой поверх зеркала
+    // ============================================================
+
+    private const val HISTORY_DIR = "ZamerPlan_backups"
+
+    private fun historyFileName(): String =
+        "ZamerPlan_backup_" +
+            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".zip"
+
+    private fun writeHistoryCopy(ctx: Context, src: File): Uri? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        return try {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, historyFileName())
+                put(MediaStore.Downloads.MIME_TYPE, "application/zip")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + HISTORY_DIR)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = ctx.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return null
+            ctx.contentResolver.openOutputStream(uri, "wt")?.use { os ->
+                src.inputStream().use { it.copyTo(os) }
+            } ?: return null
+            val pub = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
+            ctx.contentResolver.update(uri, pub, null, null)
+            uri
+        } catch (e: Exception) { null }
+    }
+
+    private fun pruneHistory(ctx: Context, keep: Int = 10) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        try {
+            val proj = arrayOf(MediaStore.Files.FileColumns._ID)
+            val sel = MediaStore.Downloads.RELATIVE_PATH + "=?"
+            val args = arrayOf(Environment.DIRECTORY_DOWNLOADS + "/" + HISTORY_DIR)
+            ctx.contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, proj, sel, args,
+                MediaStore.Files.FileColumns._ID + " DESC"
+            )?.use { c ->
+                var i = 0
+                while (c.moveToNext()) {
+                    i++
+                    if (i <= keep) continue
+                    val uri = Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, c.getString(0))
+                    try { ctx.contentResolver.delete(uri, null, null) } catch (e: Exception) { }
+                }
+            }
+        } catch (e: Exception) { }
+    }
+
+    data class HistoryEntry(val name: String, val uri: Uri, val size: Long, val dateAdded: Long)
+
+    fun listHistory(ctx: Context): List<HistoryEntry> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return emptyList()
+        return try {
+            val proj = arrayOf(
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+                MediaStore.Files.FileColumns.SIZE,
+                MediaStore.Files.FileColumns.DATE_ADDED
+            )
+            val sel = MediaStore.Downloads.RELATIVE_PATH + "=?"
+            val args = arrayOf(Environment.DIRECTORY_DOWNLOADS + "/" + HISTORY_DIR)
+            val out = ArrayList<HistoryEntry>()
+            ctx.contentResolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, proj, sel, args,
+                MediaStore.Files.FileColumns.DATE_ADDED + " DESC"
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getString(0)
+                    val name = c.getString(1) ?: ""
+                    val size = c.getLong(2)
+                    val date = c.getLong(3)
+                    if (name.isNotBlank()) {
+                        out.add(HistoryEntry(name, Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, id), size, date))
+                    }
+                }
+            }
+            out
+        } catch (e: Exception) { emptyList() }
+    }
+
+    fun restoreHistoryUri(ctx: Context, uri: Uri): RestoreResult {
+        val tmp = File(ctx.cacheDir, "hist_restore_tmp.zip")
+        return try {
+            ctx.contentResolver.openInputStream(uri)
+                ?.use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
+                ?: return RestoreResult(false, "не удалось открыть копию истории")
+            if (!tmp.exists() || tmp.length() == 0L) return RestoreResult(false, "копия истории пуста")
+            restoreFromFile(ctx, tmp)
+        } catch (e: Exception) {
+            RestoreResult(false, "ошибка восстановления из истории: ${e.message}")
         } finally { tmp.delete() }
     }
 }
