@@ -838,12 +838,16 @@ object BackupManager {
                     put(MediaStore.Downloads.DISPLAY_NAME, localFileName())
                     put(MediaStore.Downloads.MIME_TYPE, "application/zip")
                     put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.Downloads.IS_PENDING, 1)
                 }
                 val uri = ctx.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                     ?: return false
                 ctx.contentResolver.openOutputStream(uri, "wt")?.use { os ->
                     src.inputStream().use { it.copyTo(os) }
                 } ?: return false
+                val pub = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
+                ctx.contentResolver.update(uri, pub, null, null)
+                statePrefs(ctx).edit().putString("local_uri", uri.toString()).apply()
                 true
             } catch (e: Exception) { false }
         } else {
@@ -852,6 +856,7 @@ object BackupManager {
                 if (!dir.exists()) dir.mkdirs()
                 val out = File(dir, localFileName())
                 src.inputStream().use { ins -> out.outputStream().use { ins.copyTo(it) } }
+                statePrefs(ctx).edit().putString("local_path", out.absolutePath).apply()
                 true
             } catch (e: Exception) { false }
         }
@@ -860,11 +865,13 @@ object BackupManager {
     private fun localDownloadsUri(ctx: Context): Uri? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         return try {
+            MediaStore.setIncludePending(ctx.contentResolver)
             val proj = arrayOf(MediaStore.Files.FileColumns._ID)
             val sel = MediaStore.Downloads.DISPLAY_NAME + "=?"
             val args = arrayOf(localFileName())
             ctx.contentResolver.query(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI, proj, sel, args, null
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI, proj, sel, args,
+                MediaStore.Files.FileColumns._ID + " DESC"
             )?.use { c ->
                 if (c.moveToFirst())
                     Uri.withAppendedPath(MediaStore.Downloads.EXTERNAL_CONTENT_URI, c.getString(0))
@@ -874,23 +881,42 @@ object BackupManager {
     }
 
     private fun readLocalFileToTmp(ctx: Context, tmp: File): Boolean {
+        val savedUri = statePrefs(ctx).getString("local_uri", "") ?: ""
+        if (savedUri.isNotBlank()) {
+            try {
+                ctx.contentResolver.openInputStream(Uri.parse(savedUri))?.use { ins ->
+                    tmp.outputStream().use { ins.copyTo(it) }
+                }
+                if (tmp.exists() && tmp.length() > 0L) return true
+            } catch (e: Exception) { }
+        }
+        val savedPath = statePrefs(ctx).getString("local_path", "") ?: ""
+        if (savedPath.isNotBlank()) {
+            try {
+                val f = File(savedPath)
+                if (f.exists() && f.length() > 0L) {
+                    f.inputStream().use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
+                    if (tmp.exists() && tmp.length() > 0L) return true
+                }
+            } catch (e: Exception) { }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val uri = localDownloadsUri(ctx)
             if (uri != null) {
-                return try {
+                try {
                     ctx.contentResolver.openInputStream(uri)?.use { ins ->
                         tmp.outputStream().use { ins.copyTo(it) }
                     }
-                    true
-                } catch (e: Exception) { false }
+                    if (tmp.exists() && tmp.length() > 0L) return true
+                } catch (e: Exception) { }
             }
         }
         return try {
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val f = File(dir, localFileName())
-            if (!f.exists()) return false
+            if (!f.exists() || f.length() == 0L) return false
             f.inputStream().use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
-            true
+            tmp.exists() && tmp.length() > 0L
         } catch (e: Exception) { false }
     }
 
