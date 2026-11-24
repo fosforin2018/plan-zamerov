@@ -79,6 +79,7 @@ object BackupManager {
         "yandex" -> "Яндекс Диск"
         "mailru" -> "Облако Mail.ru"
         "telegram" -> "Telegram"
+        "local" -> "Загрузки"
         else -> "Файл на телефоне"
     }
 
@@ -89,7 +90,7 @@ object BackupManager {
     fun destinations(ctx: Context): List<Destination> {
         val prefs = ctx.getSharedPreferences("backup_destinations", Context.MODE_PRIVATE)
         val count = prefs.getInt("count", 0)
-        return (0 until count).mapNotNull { i ->
+        val real = (0 until count).mapNotNull { i ->
             val type = prefs.getString("type_$i", "saf") ?: "saf"
             val uri = prefs.getString("uri_$i", "") ?: ""
             if (type == "saf" && uri.isBlank()) return@mapNotNull null
@@ -103,6 +104,8 @@ object BackupManager {
                 lastError = prefs.getString("err_$i", "") ?: ""
             )
         }
+        if (real.any { it.type == "local" }) return real
+        return listOf(Destination("local", "", "", "", "Загрузки", 0L, "")) + real
     }
 
     private fun saveDestinations(ctx: Context, list: List<Destination>) {
@@ -168,6 +171,7 @@ object BackupManager {
     fun removeDestination(ctx: Context, index: Int) {
         val list = destinations(ctx).toMutableList()
         val d = list.getOrNull(index)
+        if (d != null && d.type == "local") return
         if (d != null && d.type == "saf") {
             try {
                 ctx.contentResolver.releasePersistableUriPermission(
@@ -505,6 +509,7 @@ object BackupManager {
     fun downloadTo(ctx: Context, d: Destination, dst: File): Boolean = when (d.type) {
         "yandex" -> yandexDownload(d, dst)
         "telegram" -> telegramDownload(d, dst)
+        "local" -> readLocalFileToTmp(ctx, dst)
         else -> webdavGet(d, dst)
     }
 
@@ -591,6 +596,7 @@ object BackupManager {
                         "saf" -> writeToFile(ctx, Uri.parse(d.uri), tmp)
                         "yandex" -> yandexUpload(d, tmp)
                         "telegram" -> fileId = telegramUpload(d, tmp)
+                        "local" -> writeToLocalDownloads(ctx, tmp)
                         else -> webdavPut(d, tmp)
                     }
                     updateDest(ctx, i) {
