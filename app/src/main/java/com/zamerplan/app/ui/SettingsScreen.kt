@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +89,54 @@ private fun destIcon(type: String): String = when (type) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
+// ============================================================
+// БРЕНДОВЫЕ ИКОНКИ РЕЗЕРВНЫХ КОПИЙ (вектор, путь X)
+// ============================================================
+private val IcoMailru = ImageVector.Builder(
+    name = "ic_mailru", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
+).apply {
+    addPath(fillColor = Color(0xFF0C6DF2), pathData = "M5,2 L19,2 A3,3 0 0 1 22,5 L22,19 A3,3 0 0 1 19,22 L5,22 A3,3 0 0 1 2,19 L2,5 A3,3 0 0 1 5,2 Z")
+    addPath(strokeColor = Color(0xFFFFCC33), strokeWidth = 2f, fillColor = Color.Transparent, pathData = "M15,10 A3,3 0 1 0 15,14 A3,3 0 0 0 15,10 M15,14 A5,5 0 1 1 18,10")
+}.build()
+
+private val IcoYandex = ImageVector.Builder(
+    name = "ic_yandex", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
+).apply {
+    addPath(fillColor = Color(0xFFFC3F1D), pathData = "M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z")
+    addPath(fillColor = Color.White, pathData = "M13,6 L16,6 L16,18 L13,18 L13,13 C11,13 9,11 9,9 C9,7 11,6 13,6 Z")
+}.build()
+
+private val IcoTelegram = ImageVector.Builder(
+    name = "ic_telegram", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
+).apply {
+    addPath(fillColor = Color(0xFF2AABEE), pathData = "M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z")
+    addPath(fillColor = Color.White, pathData = "M6,12 L18,7 L16,17 L12,14 L10,16 L10,13 Z")
+}.build()
+
+private val IcoDownloads = ImageVector.Builder(
+    name = "ic_downloads", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
+).apply {
+    addPath(fillColor = Color(0xFF607D8B), pathData = "M2,6 L8,6 L10,8 L22,8 L22,18 L2,18 Z")
+}.build()
+
+private val IcoSafFile = ImageVector.Builder(
+    name = "ic_saf_file", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
+).apply {
+    addPath(fillColor = Color(0xFF9E9E9E), pathData = "M6,2 L14,2 L18,6 L18,22 L6,22 Z")
+}.build()
+
+@Composable
+private fun backupIcon(type: String, modifier: Modifier = Modifier) {
+    val vec = when (type) {
+        "mailru" -> IcoMailru
+        "yandex" -> IcoYandex
+        "telegram" -> IcoTelegram
+        "local" -> IcoDownloads
+        else -> IcoSafFile
+    }
+    Icon(vec, contentDescription = null, tint = Color.Unspecified, modifier = modifier.size(20.dp))
+}
+
 fun WheelNumberPicker(
     value: Int,
     onValueChange: (Int) -> Unit,
@@ -342,6 +391,9 @@ fun SettingsScreen(
     var connectLogin by remember { mutableStateOf("") }
     var connectPass by remember { mutableStateOf("") }
     var showTelegramConnect by remember { mutableStateOf(false) }
+    var historyList by remember { mutableStateOf<List<BackupManager.HistoryEntry>>(emptyList()) }
+    var showHistory by remember { mutableStateOf(false) }
+    var historyBusy by remember { mutableStateOf(false) }
 
     fun saveCustomTime(h: Int, m: Int) {
         store.customReminderTime =
@@ -380,6 +432,42 @@ fun SettingsScreen(
             mainHandler.post {
                 backupBusy = false
                 lastReport = res.second
+                showReport = true
+            }
+        }.start()
+    }
+
+    fun loadHistory() {
+        if (historyBusy) return
+        historyBusy = true
+        Thread {
+            val list = BackupManager.listHistory(ctx)
+            mainHandler.post {
+                historyBusy = false
+                historyList = list
+                showHistory = true
+            }
+        }.start()
+    }
+
+    fun restoreLastHistory() {
+        val first = historyList.firstOrNull() ?: run { loadHistory(); return }
+        pickHistory(first)
+    }
+
+    fun pickHistory(entry: BackupManager.HistoryEntry) {
+        if (historyBusy) return
+        historyBusy = true
+        showHistory = false
+        Thread {
+            val r = BackupManager.restoreHistoryUri(ctx, entry.uri)
+            mainHandler.post {
+                historyBusy = false
+                if (r.ok) {
+                    ReminderScheduler.scheduleAll(ctx, Storage(ctx).load(), store)
+                    ZamerWidget.refreshAll(ctx)
+                }
+                lastReport = r.message
                 showReport = true
             }
         }.start()
@@ -800,78 +888,120 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                if (dests.isEmpty()) {
-                    Text(
-                        "Пока нет подключений. Проще всего: «➕ Telegram» — два нажатия и копии уходят в ваш чат с ботом автоматически.",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
-                } else {
-                    dests.forEachIndexed { i, d ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                // === СПИСОК СТАТУСОВ ===
+                dests.forEachIndexed { i, d ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        backupIcon(d.type, Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(d.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
                             Text(
-                                if (d.lastError.isBlank()) "✓" else "⚠",
-                                fontSize = 14.sp,
-                                color = if (d.lastError.isBlank()) Green else Red
+                                text = when {
+                                    d.lastError.isNotBlank() -> "⚠ ${d.lastError}"
+                                    d.lastOk > 0L -> "✓ копия: ${fmtBackupTime(d.lastOk)}"
+                                    else -> "○ ожидает первой копии"
+                                },
+                                fontSize = 12.sp,
+                                color = if (d.lastError.isNotBlank()) Red else TextSecondary
                             )
-                            Spacer(Modifier.width(6.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(destIcon(d.type) + " " + d.name, fontSize = 13.sp, color = TextPrimary, maxLines = 1)
-                                Text(
-                                    if (d.lastError.isBlank()) "копия: " + fmtBackupTime(d.lastOk)
-                                    else d.lastError,
-                                    fontSize = 11.sp,
-                                    color = if (d.lastError.isBlank()) TextSecondary else Red
-                                )
-                            }
-                            IconButton(onClick = {
-                                BackupManager.removeDestination(ctx, i)
-                                dests = BackupManager.destinations(ctx)
-                            }) { Text("✕", color = Red) }
                         }
+                        IconButton(onClick = {
+                            BackupManager.removeDestination(ctx, i)
+                            dests = BackupManager.destinations(ctx)
+                        }) { Text("✕", color = Gray, fontSize = 16.sp) }
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Button(
-                        onClick = { showTelegramConnect = true },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
-                    ) { Text("➕ Telegram", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                // === КНОПКИ ПОДКЛЮЧЕНИЯ (вертикальные, умные) ===
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            if (!BackupManager.yandexConfigured()) {
-                                lastReport = "Подключение Яндекса не настроено: вставь ClientID и Client secret в константы в начале BackupManager.kt"
+                            val connected = dests.any { it.type == "telegram" }
+                            if (connected) {
+                                lastReport = "Telegram подключён (${dests.find { it.type == "telegram" }?.name})\nЧтобы переподключить — сначала нажмите ✕."
                                 showReport = true
                             } else {
-                                try {
-                                    ctx.startActivity(BackupManager.yandexAuthIntent())
-                                } catch (e: Exception) {
-                                    lastReport = "Не удалось открыть браузер: ${e.message}"
+                                showTelegramConnect = true
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            backupIcon("telegram", Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text("Подключить Telegram", fontSize = 14.sp, color = Color.White)
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            val connected = dests.any { it.type == "yandex" }
+                            if (connected) {
+                                lastReport = "Яндекс Диск подключён (${dests.find { it.type == "yandex" }?.name})\nЧтобы переподключить — сначала нажмите ✕."
+                                showReport = true
+                            } else {
+                                if (!BackupManager.yandexConfigured()) {
+                                    lastReport = "Не настроено: вставьте ClientID/Secret в BackupManager.kt"
                                     showReport = true
+                                } else {
+                                    try { ctx.startActivity(BackupManager.yandexAuthIntent()) }
+                                    catch (e: Exception) { lastReport = "Ошибка браузера: ${e.message}"; showReport = true }
                                 }
                             }
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Orange)
-                    ) { Text("➕ Яндекс", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            backupIcon("yandex", Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text("Подключить Яндекс Диск", fontSize = 14.sp, color = Color.White)
+                        }
+                    }
+
                     Button(
                         onClick = {
-                            connectType = "mailru"
-                            connectLogin = ""
-                            connectPass = ""
+                            val connected = dests.any { it.type == "mailru" }
+                            if (connected) {
+                                lastReport = "Mail.ru Cloud подключён (${dests.find { it.type == "mailru" }?.name})\nЧтобы переподключить — сначала нажмите ✕."
+                                showReport = true
+                            } else {
+                                connectType = "mailru"
+                                connectLogin = ""
+                                connectPass = ""
+                            }
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Orange)
-                    ) { Text("➕ Mail.ru", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Purple)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            backupIcon("mailru", Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text("Подключить Облако Mail.ru", fontSize = 14.sp, color = Color.White)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = { createLauncher.launch(BackupManager.createDocumentIntent()) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Gray.copy(alpha = 0.5f))
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            backupIcon("saf", Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Другая папка (если Загрузки не работают)", fontSize = 12.sp, color = TextSecondary)
+                        }
+                    }
                 }
                 Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -896,7 +1026,13 @@ fun SettingsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Blue)
                     ) { Text("📥 Вернуть", fontSize = 11.sp, color = Color.White, maxLines = 1) }
                     Button(
-                        onClick = { saveLocal() },
+                        onClick = { loadHistory() },
+                        modifier = Modifier.weight(1f),
+                        enabled = !backupBusy && !historyBusy,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Blue)
+                    ) { Text("🕘 История", fontSize = 11.sp, color = Color.White, maxLines = 1) }
+                    Button(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Gray)
@@ -1114,16 +1250,6 @@ fun SettingsScreen(
             title = { Text("Откуда восстановить", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    TextButton(
-                        onClick = {
-                            showRestoreSource = false
-                            prepareRestoreLocal()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("📱 Из Загрузок", color = onSurface, modifier = Modifier.fillMaxWidth())
-                    }
-                    dests.forEach { d ->
                         TextButton(
                             onClick = {
                                 showRestoreSource = false
@@ -1254,4 +1380,35 @@ fun SettingsScreen(
             }
         )
     }
+                // === ДИАЛОГ ИСТОРИИ КОПИЙ ===
+                if (showHistory) {
+                    AlertDialog(
+                        onDismissRequest = { showHistory = false },
+                        title = { Text("🕘 История копий", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+                        text = {
+                            if (historyList.isEmpty()) {
+                                Text("Копий пока нет. Нажмите «💾 Локально» или включите автокопию.", fontSize = 13.sp, color = TextSecondary)
+                            } else {
+                                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                                    items(historyList.size) { idx ->
+                                        val entry = historyList[idx]
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().clickable { pickHistory(entry) }.padding(vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(entry.name.removePrefix("ZamerPlan_backup_").removeSuffix(".zip"), fontSize = 14.sp, color = TextPrimary)
+                                                Text("${entry.size / 1024} КБ · ${SimpleDateFormat("dd.MM HH:mm", Locale.US).format(Date(entry.dateAdded * 1000L))}", fontSize = 11.sp, color = TextSecondary)
+                                            }
+                                            Icon(Icons.Default.ArrowForwardIos, null, tint = Gray, modifier = Modifier.size(16.dp))
+                                        }
+                                        HorizontalDivider(color = DarkCardBorder)
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {},
+                        dismissButton = { TextButton(onClick = { showHistory = false }) { Text("Закрыть", color = Blue) } }
+                    )
+                }
 }
