@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -90,138 +89,36 @@ private fun destIcon(type: String): String = when (type) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 // ============================================================
-// БРЕНДОВЫЕ ИКОНКИ РЕЗЕРВНЫХ КОПИЙ (вектор, путь X)
 // ============================================================
-private val IcoMailru = ImageVector.Builder(
-    name = "ic_mailru", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
-).apply {
-    addPath(fillColor = Color(0xFF0C6DF2), pathData = "M5,2 L19,2 A3,3 0 0 1 22,5 L22,19 A3,3 0 0 1 19,22 L5,22 A3,3 0 0 1 2,19 L2,5 A3,3 0 0 1 5,2 Z")
-    addPath(strokeColor = Color(0xFFFFCC33), strokeWidth = 2f, fillColor = Color.Transparent, pathData = "M15,10 A3,3 0 1 0 15,14 A3,3 0 0 0 15,10 M15,14 A5,5 0 1 1 18,10")
-}.build()
-
-private val IcoYandex = ImageVector.Builder(
-    name = "ic_yandex", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
-).apply {
-    addPath(fillColor = Color(0xFFFC3F1D), pathData = "M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z")
-    addPath(fillColor = Color.White, pathData = "M13,6 L16,6 L16,18 L13,18 L13,13 C11,13 9,11 9,9 C9,7 11,6 13,6 Z")
-}.build()
-
-private val IcoTelegram = ImageVector.Builder(
-    name = "ic_telegram", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
-).apply {
-    addPath(fillColor = Color(0xFF2AABEE), pathData = "M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z")
-    addPath(fillColor = Color.White, pathData = "M6,12 L18,7 L16,17 L12,14 L10,16 L10,13 Z")
-}.build()
-
-private val IcoDownloads = ImageVector.Builder(
-    name = "ic_downloads", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
-).apply {
-    addPath(fillColor = Color(0xFF607D8B), pathData = "M2,6 L8,6 L10,8 L22,8 L22,18 L2,18 Z")
-}.build()
-
-private val IcoSafFile = ImageVector.Builder(
-    name = "ic_saf_file", defaultWidth = 20.dp, defaultHeight = 20.dp, viewportWidth = 24f, viewportHeight = 24f
-).apply {
-    addPath(fillColor = Color(0xFF9E9E9E), pathData = "M6,2 L14,2 L18,6 L18,22 L6,22 Z")
-}.build()
+// ИКОНКИ РЕЗЕРВНЫХ КОПИЙ (эмодзи + цвет, компилируется всегда)
+// ============================================================
 
 @Composable
 private fun backupIcon(type: String, modifier: Modifier = Modifier) {
-    val vec = when (type) {
-        "mailru" -> IcoMailru
-        "yandex" -> IcoYandex
-        "telegram" -> IcoTelegram
-        "local" -> IcoDownloads
-        else -> IcoSafFile
+    val emoji = when (type) {
+        "mailru" -> "@"
+        "yandex" -> "Я"
+        "telegram" -> "✈"
+        "local" -> "📱"
+        else -> "📂"
     }
-    Icon(vec, contentDescription = null, tint = Color.Unspecified, modifier = modifier.size(20.dp))
-}
-
-fun WheelNumberPicker(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    range: IntRange,
-    enabled: Boolean = true,
-    digitColor: Color = TextSecondary,
-    activeColor: Color = Orange,
-    bgColor: Color = Color.White.copy(alpha = 0.08f),
-    modifier: Modifier = Modifier
-) {
-    val itemHeight = 32.dp
-    val side = 1
-    val values = remember(range) { (range.first..range.last).toList() }
-    val listState = rememberLazyListState()
-    val fling = rememberSnapFlingBehavior(lazyListState = listState)
-    var touched by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        listState.scrollToItem((value - range.first).coerceAtLeast(0))
+    val bgColor = when (type) {
+        "mailru" -> Color(0xFF0C6DF2)
+        "yandex" -> Color(0xFFFC3F1D)
+        "telegram" -> Color(0xFF2AABEE)
+        "local" -> Color(0xFF607D8B)
+        else -> Color(0xFF9E9E9E)
     }
-    LaunchedEffect(value) {
-        val target = (value - range.first).coerceAtLeast(0)
-        if (listState.firstVisibleItemIndex != target) {
-            listState.animateScrollToItem(target)
-        }
-    }
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (listState.isScrollInProgress) {
-            touched = true
-        } else if (touched) {
-            val newValue = (range.first + listState.firstVisibleItemIndex).coerceIn(range)
-            if (newValue != value) onValueChange(newValue)
-        }
-    }
-
     Box(
-        modifier = modifier
-            .width(56.dp)
-            .height(itemHeight * 3)
-            .background(bgColor, RoundedCornerShape(10.dp))
-            .alpha(if (enabled) 1f else 0.4f)
+        modifier = modifier.size(22.dp),
+        contentAlignment = Alignment.Center
     ) {
-        if (enabled) {
-            LazyColumn(
-                state = listState,
-                flingBehavior = fling,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(side) { Spacer(Modifier.height(itemHeight)) }
-                items(values.size) { i ->
-                    val v = values[i]
-                    val selected = v == value
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(itemHeight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            v.toString().padStart(2, '0'),
-                            fontSize = if (selected) 16.sp else 12.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selected) activeColor else digitColor
-                        )
-                    }
-                }
-                items(side) { Spacer(Modifier.height(itemHeight)) }
-            }
-        } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    value.toString().padStart(2, '0'),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = digitColor
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth()
-                .height(itemHeight)
-                .border(1.dp, activeColor.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-        )
+        Surface(
+            shape = if (type == "mailru") RoundedCornerShape(4.dp) else CircleShape,
+            color = bgColor,
+            modifier = Modifier.fillMaxSize()
+        ) {}
+        Text(emoji, fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
     }
 }
 
