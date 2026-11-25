@@ -1264,7 +1264,6 @@ fun SettingsScreen(
                             )
                         }
                     }
-                }
             },
             confirmButton = {
                 TextButton(onClick = { showRestoreSource = false }) { Text("Отмена") }
